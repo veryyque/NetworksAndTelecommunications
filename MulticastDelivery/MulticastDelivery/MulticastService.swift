@@ -7,7 +7,9 @@ final class MulticastService {
     private let group: String
     private let family: Int32
     private let peerManager: PeerManager
-    private let networkInterface: NetworkInterface
+    private var networkInterface: NetworkInterface
+    private let requestedInterfaceName: String?
+    private var lastNetworkError: String?
 
     private var socketFD: Int32 = -1
     private var destination4 = sockaddr_in()
@@ -17,8 +19,13 @@ final class MulticastService {
         self.group = group
         self.family = family
         self.peerManager = peerManager
+        self.requestedInterfaceName = interfaceName
         self.networkInterface = try MulticastService.findInterface(family: family, requestedName: interfaceName)
 
+        try openSocket()
+    }
+
+    private func openSocket() throws {
         socketFD = socket(family, SOCK_DGRAM, IPPROTO_UDP)
         try Utils.check(socketFD, "Создание UDP-сокета")
 
@@ -47,6 +54,35 @@ final class MulticastService {
     deinit {
         if socketFD >= 0 {
             close(socketFD)
+        }
+    }
+
+    private func closeSocket() {
+        if socketFD >= 0 {
+            close(socketFD)
+            socketFD = -1
+        }
+    }
+
+    private func refreshInterface() throws {
+        let current = try MulticastService.findInterface(family: family, requestedName: requestedInterfaceName)
+        let changed = current.index != networkInterface.index
+            || current.name != networkInterface.name
+            || current.ipv4Address.s_addr != networkInterface.ipv4Address.s_addr
+            || current.addresses != networkInterface.addresses
+        guard changed || socketFD < 0 else { return }
+
+        let previous = networkInterface
+        closeSocket()
+        networkInterface = current
+        do {
+            try openSocket()
+        } catch {
+            networkInterface = previous
+            throw error
+        }
+        if changed {
+            print("Сеть этой копии изменилась: \(previous.name) [\(previous.addresses.joined(separator: ", "))] -> \(current.name) [\(current.addresses.joined(separator: ", "))] | UUID: \(id)")
         }
     }
 
@@ -199,12 +235,27 @@ final class MulticastService {
 
         while true {
             let now = ProcessInfo.processInfo.systemUptime
-            if now >= nextHeartbeat {
-                try sendHeartbeat()
+            do {
+                if now >= nextHeartbeat {
+                    nextHeartbeat = now + Utils.heartbeatInterval
+                    // Проверяем адреса даже при успешной отправке: старый сокет может не сообщить об их смене.
+                    try refreshInterface()
+                    try sendHeartbeat()
+                    if lastNetworkError != nil {
+                        print("Связь восстановлена через \(networkInterface.name) | UUID: \(id)")
+                        lastNetworkError = nil
+                    }
+                }
+                if socketFD >= 0 { try receiveMessages() }
+            } catch {
+                let message = (error as? AppError)?.message ?? String(describing: error)
+                if message != lastNetworkError {
+                    print("Сеть недоступна: \(message). Повтор через \(Utils.heartbeatInterval) с.")
+                }
+                lastNetworkError = message
+                closeSocket()
                 nextHeartbeat = now + Utils.heartbeatInterval
             }
-
-            try receiveMessages()
             peerManager.removeExpiredPeers()
 
             var descriptor = pollfd(fd: socketFD, events: Int16(POLLIN), revents: 0)
@@ -256,11 +307,22 @@ final class MulticastService {
                     return $0.pointee.sin_addr
                 }
             }
+            var host = [CChar](repeating: 0, count: Int(NI_MAXHOST))
+            guard getnameinfo(address, socklen_t(address.pointee.sa_len), &host,
+                              socklen_t(host.count), nil, 0, NI_NUMERICHOST) == 0 else { continue }
+            let numericAddress = String(cString: host)
             let index = if_nametoindex(item.ifa_name)
             if index != 0 && candidates[index] == nil {
                 candidates[index] = NetworkInterface(name: name, index: index, ipv4Address: ipv4Address)
                 priorities[index] = connectionPriorities[name] ?? 2
             }
+            if index != 0 {
+                candidates[index]?.addresses.append(numericAddress)
+            }
+        }
+        for index in Array(candidates.keys) {
+            let addresses = candidates[index]?.addresses ?? []
+            candidates[index]?.addresses = Array(Set(addresses)).sorted()
         }
 
         let available = candidates.values.sorted {
