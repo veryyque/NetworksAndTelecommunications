@@ -1,6 +1,6 @@
 import Foundation
 
-class PeerManager {
+final class PeerManager {
     private var peers: [String: Peer] = [:] //UUID копии приложения/структура хранения
     private let timeout: Double
 
@@ -14,10 +14,10 @@ class PeerManager {
         peers[id] = Peer(ip: ip, lastSeen: currentTime())
 
         if oldPeer == nil {
-            print("\nПоявилась копия: \(ip)")
+            print("\nПоявилась копия: \(ip) | UUID: \(id)")
             printPeers()
-        } else if oldPeer?.ip != ip {
-            print("\nУ копии изменился IP: \(ip)")
+        } else if let oldPeer = oldPeer, oldPeer.ip != ip {
+            print("\nУ копии изменился IP: \(oldPeer.ip) -> \(ip) | UUID: \(id)")
             printPeers()
         }
     }
@@ -35,7 +35,7 @@ class PeerManager {
 
         for id in expiredIDs {
             if let peer = peers.removeValue(forKey: id) {
-                print("\nИсчезла копия: \(peer.ip)")
+                print("\nИстёк тайм-аут копии: \(peer.ip) | UUID: \(id)")
             }
         }
 
@@ -52,8 +52,12 @@ class PeerManager {
             return
         }
 
-        for peer in peers.values {
-            print("  \(peer.ip)")
+        let sortedPeers = peers.sorted {
+            if $0.value.ip != $1.value.ip { return $0.value.ip < $1.value.ip }
+            return $0.key < $1.key
+        }
+        for (id, peer) in sortedPeers {
+            print("  \(peer.ip) | UUID: \(id)")
         }
     }
 

@@ -13,6 +13,7 @@ enum Application {
             let service = try MulticastService(
                 group: config.group,
                 family: config.family,
+                interfaceName: config.interfaceName,
                 peerManager: peerManager
             )
 

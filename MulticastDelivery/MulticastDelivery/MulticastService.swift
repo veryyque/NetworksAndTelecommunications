@@ -1,7 +1,8 @@
 import Foundation
 import Darwin
+import SystemConfiguration
 
-class MulticastService {
+final class MulticastService {
     private let id = UUID().uuidString
     private let group: String
     private let family: Int32
@@ -9,25 +10,25 @@ class MulticastService {
     private let networkInterface: NetworkInterface
 
     private var socketFD: Int32 = -1
-    private var destination4 = sockaddr_in() //адрес назначения
+    private var destination4 = sockaddr_in()
     private var destination6 = sockaddr_in6()
 
-    init(group: String, family: Int32, peerManager: PeerManager) throws {
+    init(group: String, family: Int32, interfaceName: String? = nil, peerManager: PeerManager) throws {
         self.group = group
         self.family = family
         self.peerManager = peerManager
-        self.networkInterface = try MulticastService.findInterface(family: family)
+        self.networkInterface = try MulticastService.findInterface(family: family, requestedName: interfaceName)
 
-        socketFD = socket(family, SOCK_DGRAM, IPPROTO_UDP) //создаю датагнраммный UDP сокет
+        socketFD = socket(family, SOCK_DGRAM, IPPROTO_UDP)
         try Utils.check(socketFD, "Создание UDP-сокета")
 
         do {
-            var yes: Int32 = 1 //индикатор включения
-            let size = socklen_t(MemoryLayout<Int32>.size) //размер индикатора
+            var yes: Int32 = 1
+            let size = socklen_t(MemoryLayout<Int32>.size)
             try Utils.check(setsockopt(socketFD, SOL_SOCKET, SO_REUSEADDR, &yes, size), "SO_REUSEADDR") //настройка сокету разрешения на повторное использ адреса
             try Utils.check(setsockopt(socketFD, SOL_SOCKET, SO_REUSEPORT, &yes, size), "SO_REUSEPORT")
 
-            if family == AF_INET { //настройка в зависимости от типа айпи
+            if family == AF_INET {
                 try configureIPv4()
             } else {
                 try configureIPv6()
@@ -53,7 +54,7 @@ class MulticastService {
         var groupAddress = in_addr()
         inet_pton(AF_INET, group, &groupAddress)
 
-        var local = sockaddr_in() //локальный адрес сокета
+        var local = sockaddr_in()
         local.sin_len = UInt8(MemoryLayout<sockaddr_in>.size)
         local.sin_family = sa_family_t(AF_INET)
         local.sin_port = Utils.port.bigEndian
@@ -122,29 +123,33 @@ class MulticastService {
 
     private func sendHeartbeat() throws {
         let bytes = Array("\(Utils.messagePrefix)|\(id)".utf8) //сообщение + UUID текущего запуска
-        let sent: Int
-
-        if family == AF_INET {
-            sent = withUnsafePointer(to: &destination4) { pointer in
-                pointer.withMemoryRebound(to: sockaddr.self, capacity: 1) { address in
-                    sendto(socketFD, bytes, bytes.count, 0, address, socklen_t(MemoryLayout<sockaddr_in>.size))
+        while true {
+            let sent: Int
+    
+            if family == AF_INET {
+                sent = withUnsafePointer(to: &destination4) { pointer in
+                    pointer.withMemoryRebound(to: sockaddr.self, capacity: 1) { address in
+                        sendto(socketFD, bytes, bytes.count, 0, address, socklen_t(MemoryLayout<sockaddr_in>.size))
+                    }
+                }
+            } else {
+                sent = withUnsafePointer(to: &destination6) { pointer in
+                    pointer.withMemoryRebound(to: sockaddr.self, capacity: 1) { address in
+                        sendto(socketFD, bytes, bytes.count, 0, address, socklen_t(MemoryLayout<sockaddr_in6>.size))
+                    }
                 }
             }
-        } else {
-            sent = withUnsafePointer(to: &destination6) { pointer in
-                pointer.withMemoryRebound(to: sockaddr.self, capacity: 1) { address in
-                    sendto(socketFD, bytes, bytes.count, 0, address, socklen_t(MemoryLayout<sockaddr_in6>.size))
-                }
-            } //sendto - отправка датаграммы
-        }
-
-        if sent == -1 && errno != EAGAIN && errno != EWOULDBLOCK && errno != EINTR {
-            throw AppError(message: "Ошибка отправки: \(String(cString: strerror(errno)))")
+            if sent >= 0 { return }
+            let errorCode = errno
+            
+            if errorCode == EINTR { continue } //повторная откправка пакета про ошибке
+            if errorCode == EAGAIN || errorCode == EWOULDBLOCK { return }
+            throw AppError(message: "Ошибка отправки: \(String(cString: strerror(errorCode)))")
         }
     }
 
     private func receiveMessages() throws {
-        for _ in 0..<32 { //обработка 32 пакетов за раз
+        for _ in 0..<32 {
             var buffer = [UInt8](repeating: 0, count: 512)
             var sender = sockaddr_storage()
             var senderLength = socklen_t(MemoryLayout<sockaddr_storage>.size)
@@ -163,7 +168,11 @@ class MulticastService {
 
             guard let message = String(bytes: buffer.prefix(count), encoding: .utf8) else { continue }
             let parts = message.components(separatedBy: "|")
-            if parts.count != 2 || parts[0] != Utils.messagePrefix || parts[1] == id { continue }
+            guard parts.count == 2,
+                  parts[0] == Utils.messagePrefix,
+                  let peerUUID = UUID(uuidString: parts[1]) else { continue }
+            let peerID = peerUUID.uuidString
+            if peerID == id { continue }
 
             var host = [CChar](repeating: 0, count: Int(NI_MAXHOST))
             let result = withUnsafePointer(to: &sender) { pointer in
@@ -173,12 +182,13 @@ class MulticastService {
             }
 
             if result == 0 {
-                peerManager.updatePeer(id: parts[1], ip: String(cString: host))
+                peerManager.updatePeer(id: peerID, ip: String(cString: host))
             }
         }
     }
 
     func run() throws {
+        print("UUID этой копии: \(id)")
         print("Группа: \(group), порт: \(Utils.port)")
         print("Протокол: \(family == AF_INET ? "IPv4" : "IPv6")")
         print("Интерфейс: \(networkInterface.name)")
@@ -205,11 +215,26 @@ class MulticastService {
         }
     }
 
-    private static func findInterface(family: Int32) throws -> NetworkInterface {
+    private static func findInterface(family: Int32, requestedName: String?) throws -> NetworkInterface {
         var first: UnsafeMutablePointer<ifaddrs>?
         try Utils.check(getifaddrs(&first), "Получение сетевых интерфейсов")
         defer { freeifaddrs(first) }
 
+        let protocolName = family == AF_INET ? "IPv4" : "IPv6"
+        let interfaces = SCNetworkInterfaceCopyAll() as? [SCNetworkInterface] ?? []
+        var connectionPriorities: [String: Int] = [:]
+        for interface in interfaces {
+            guard let name = SCNetworkInterfaceGetBSDName(interface) as String?,
+                  let type = SCNetworkInterfaceGetInterfaceType(interface) as String? else { continue }
+            if type == kSCNetworkInterfaceTypeIEEE80211 as String {
+                connectionPriorities[name] = 0
+            } else if type == kSCNetworkInterfaceTypeEthernet as String {
+                connectionPriorities[name] = 1
+            }
+        }
+
+        var candidates: [UInt32: NetworkInterface] = [:]
+        var priorities: [UInt32: Int] = [:]
         var current = first
         while let pointer = current {
             let item = pointer.pointee
@@ -217,25 +242,46 @@ class MulticastService {
             guard let address = item.ifa_addr else { continue }
 
             let name = String(cString: item.ifa_name)
-            if !name.hasPrefix("en") { continue }
             if Int32(address.pointee.sa_family) != family { continue }
             if item.ifa_flags & UInt32(IFF_UP) == 0 { continue }
+            if item.ifa_flags & UInt32(IFF_RUNNING) == 0 { continue }
             if item.ifa_flags & UInt32(IFF_MULTICAST) == 0 { continue }
-
+            if requestedName == nil {
+                if item.ifa_flags & UInt32(IFF_LOOPBACK | IFF_POINTOPOINT) != 0 { continue }
+                if connectionPriorities[name] == nil { continue }
+            }
             var ipv4Address = in_addr()
             if family == AF_INET {
                 ipv4Address = address.withMemoryRebound(to: sockaddr_in.self, capacity: 1) {
                     return $0.pointee.sin_addr
                 }
             }
-
             let index = if_nametoindex(item.ifa_name)
-            if index != 0 {
-                return NetworkInterface(name: name, index: index, ipv4Address: ipv4Address)
+            if index != 0 && candidates[index] == nil {
+                candidates[index] = NetworkInterface(name: name, index: index, ipv4Address: ipv4Address)
+                priorities[index] = connectionPriorities[name] ?? 2
             }
         }
 
-        throw AppError(message: "Не найден активный Wi-Fi/Ethernet-интерфейс с поддержкой multicast")
+        let available = candidates.values.sorted {
+            let leftPriority = priorities[$0.index] ?? 3
+            let rightPriority = priorities[$1.index] ?? 3
+            if leftPriority != rightPriority { return leftPriority < rightPriority }
+            return $0.name < $1.name
+        }
+        let names = available.map { $0.name }.joined(separator: ", ")
+
+        if let requestedName = requestedName {
+            guard let selected = available.first(where: { $0.name == requestedName }) else {
+                throw AppError(message: "Интерфейс \(requestedName) недоступен для \(protocolName) multicast. Подходящие интерфейсы: \(names.isEmpty ? "нет" : names)")
+            }
+            return selected
+        }
+
+        guard let selected = available.first else {
+            throw AppError(message: "Не найден активный Wi-Fi/Ethernet-интерфейс с поддержкой \(protocolName) multicast")
+        }
+        return selected
     }
 
 }
