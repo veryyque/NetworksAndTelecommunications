@@ -18,7 +18,10 @@
 
 ```Bash 
 swiftc MulticastDelivery/*.swift -o multicast
+./multicast <ip>
+```
+или
+```Bash 
 ./multicast <ip> <interface>
 ```
-
 Запуск через Xcode - открытием файла MulticastDelivery.xcodeproj
