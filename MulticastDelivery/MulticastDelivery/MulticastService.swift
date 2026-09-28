@@ -32,7 +32,7 @@ final class MulticastService {
         do {
             var yes: Int32 = 1
             let size = socklen_t(MemoryLayout<Int32>.size)
-            try Utils.check(setsockopt(socketFD, SOL_SOCKET, SO_REUSEADDR, &yes, size), "SO_REUSEADDR") //настройка сокету разрешения на повторное использ адреса
+            try Utils.check(setsockopt(socketFD, SOL_SOCKET, SO_REUSEADDR, &yes, size), "SO_REUSEADDR")
             try Utils.check(setsockopt(socketFD, SOL_SOCKET, SO_REUSEPORT, &yes, size), "SO_REUSEPORT")
 
             if family == AF_INET {
@@ -43,7 +43,7 @@ final class MulticastService {
 
             let flags = fcntl(socketFD, F_GETFL, 0)
             try Utils.check(flags, "Чтение флагов сокета")
-            try Utils.check(fcntl(socketFD, F_SETFL, flags | O_NONBLOCK), "Неблокирующий режим") //recvfrom не ждёт бесконечно, если сообщений нет
+            try Utils.check(fcntl(socketFD, F_SETFL, flags | O_NONBLOCK), "Неблокирующий режим")
         } catch {
             close(socketFD)
             socketFD = -1
@@ -94,7 +94,7 @@ final class MulticastService {
         local.sin_len = UInt8(MemoryLayout<sockaddr_in>.size)
         local.sin_family = sa_family_t(AF_INET)
         local.sin_port = Utils.port.bigEndian
-        local.sin_addr.s_addr = INADDR_ANY //принимать UDP пакеты на порт пришедшие на любой локальный IPv4-адрес
+        local.sin_addr.s_addr = INADDR_ANY
 
         let bindResult = withUnsafePointer(to: &local) { pointer in
             pointer.withMemoryRebound(to: sockaddr.self, capacity: 1) { address in
@@ -103,16 +103,16 @@ final class MulticastService {
         }
         try Utils.check(bindResult, "Привязка к UDP-порту \(Utils.port)")
 
-        var membership = ip_mreq() //системная структура запроса на вступление в IPv4 multicast-группу.
+        var membership = ip_mreq()
         membership.imr_multiaddr = groupAddress
-        membership.imr_interface = networkInterface.ipv4Address //адрес лок интерфейса
+        membership.imr_interface = networkInterface.ipv4Address
         try Utils.check(setsockopt(socketFD, IPPROTO_IP, IP_ADD_MEMBERSHIP, &membership, socklen_t(MemoryLayout<ip_mreq>.size)), "Вступление в IPv4-группу")
 
         var interfaceAddress = networkInterface.ipv4Address
-        try Utils.check(setsockopt(socketFD, IPPROTO_IP, IP_MULTICAST_IF, &interfaceAddress, socklen_t(MemoryLayout<in_addr>.size)), "Выбор IPv4-интерфейса") //для отправки пакетов
+        try Utils.check(setsockopt(socketFD, IPPROTO_IP, IP_MULTICAST_IF, &interfaceAddress, socklen_t(MemoryLayout<in_addr>.size)), "Выбор IPv4-интерфейса")
 
         var one: UInt8 = 1
-        try Utils.check(setsockopt(socketFD, IPPROTO_IP, IP_MULTICAST_TTL, &one, 1), "IPv4 TTL") //установка Time to live пакета
+        try Utils.check(setsockopt(socketFD, IPPROTO_IP, IP_MULTICAST_TTL, &one, 1), "IPv4 TTL")
         try Utils.check(setsockopt(socketFD, IPPROTO_IP, IP_MULTICAST_LOOP, &one, 1), "IPv4 loopback")
 
         destination4.sin_len = UInt8(MemoryLayout<sockaddr_in>.size)
@@ -143,7 +143,7 @@ final class MulticastService {
         try Utils.check(setsockopt(socketFD, IPPROTO_IPV6, IPV6_JOIN_GROUP, &membership, socklen_t(MemoryLayout<ipv6_mreq>.size)), "Вступление в IPv6-группу")
 
         var index = networkInterface.index
-        try Utils.check(setsockopt(socketFD, IPPROTO_IPV6, IPV6_MULTICAST_IF, &index, socklen_t(MemoryLayout<UInt32>.size)), "Выбор IPv6-интерфейса") //выбираю интерфейс через индекс
+        try Utils.check(setsockopt(socketFD, IPPROTO_IPV6, IPV6_MULTICAST_IF, &index, socklen_t(MemoryLayout<UInt32>.size)), "Выбор IPv6-интерфейса")
 
         var hops: Int32 = 1
         var loop: UInt32 = 1
@@ -158,7 +158,7 @@ final class MulticastService {
     }
 
     private func sendHeartbeat() throws {
-        let bytes = Array("\(Utils.messagePrefix)|\(id)".utf8) //сообщение + UUID текущего запуска
+        let bytes = Array("\(Utils.messagePrefix)|\(id)".utf8)
         while true {
             let sent: Int
     
@@ -178,7 +178,7 @@ final class MulticastService {
             if sent >= 0 { return }
             let errorCode = errno
             
-            if errorCode == EINTR { continue } //повторная откправка пакета про ошибке
+            if errorCode == EINTR { continue }
             if errorCode == EAGAIN || errorCode == EWOULDBLOCK { return }
             throw AppError(message: "Ошибка отправки: \(String(cString: strerror(errorCode)))")
         }
@@ -213,7 +213,7 @@ final class MulticastService {
             var host = [CChar](repeating: 0, count: Int(NI_MAXHOST))
             let result = withUnsafePointer(to: &sender) { pointer in
                 pointer.withMemoryRebound(to: sockaddr.self, capacity: 1) { address in
-                    getnameinfo(address, senderLength, &host, socklen_t(host.count), nil, 0, NI_NUMERICHOST) //получение IP
+                    getnameinfo(address, senderLength, &host, socklen_t(host.count), nil, 0, NI_NUMERICHOST)
                 }
             }
 
@@ -238,7 +238,6 @@ final class MulticastService {
             do {
                 if now >= nextHeartbeat {
                     nextHeartbeat = now + Utils.heartbeatInterval
-                    // Проверяем адреса даже при успешной отправке: старый сокет может не сообщить об их смене.
                     try refreshInterface()
                     try sendHeartbeat()
                     if lastNetworkError != nil {

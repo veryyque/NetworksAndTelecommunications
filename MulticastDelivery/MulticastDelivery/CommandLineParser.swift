@@ -23,7 +23,7 @@ final class CommandLineParser {
         var address4 = in_addr()
         var address6 = in6_addr()
 
-        if inet_pton(AF_INET, group, &address4) == 1 { //перевод айпи в биты
+        if inet_pton(AF_INET, group, &address4) == 1 {
             let firstByte = UInt32(bigEndian: address4.s_addr) >> 24
             if firstByte < 224 || firstByte > 239 {
                 throw AppError(message: "IPv4 multicast должен начинаться с числа от 224 до 239")

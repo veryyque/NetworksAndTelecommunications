@@ -1,14 +1,13 @@
 import Foundation
 
 final class PeerManager {
-    private var peers: [String: Peer] = [:] //UUID копии приложения/структура хранения
+    private var peers: [String: Peer] = [:]
     private let timeout: Double
 
     init(timeout: Double) {
         self.timeout = timeout
     }
 
-    //добавление/обновление копии
     func updatePeer(id: String, ip: String) {
         let oldPeer = peers[id]
         peers[id] = Peer(ip: ip, lastSeen: currentTime())
@@ -22,7 +21,6 @@ final class PeerManager {
         }
     }
 
-    //удаление копии
     func removeExpiredPeers() {
         var expiredIDs: [String] = []
         let now = currentTime()
