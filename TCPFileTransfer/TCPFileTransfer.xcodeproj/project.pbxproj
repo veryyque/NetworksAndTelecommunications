@@ -1,0 +1,456 @@
+// !$*UTF8*$!
+{
+	archiveVersion = 1;
+	classes = {
+	};
+	objectVersion = 77;
+	objects = {
+
+/* Begin PBXBuildFile section */
+		57D7363D307404E1001977CE /* FileUtils.swift in Sources */ = {isa = PBXBuildFile; fileRef = 57D7362430740156001977CE /* FileUtils.swift */; };
+		57D7363E307404E1001977CE /* ProtocolUtils.swift in Sources */ = {isa = PBXBuildFile; fileRef = 57D7362530740156001977CE /* ProtocolUtils.swift */; };
+		57D7363F307404E1001977CE /* SocketUtils.swift in Sources */ = {isa = PBXBuildFile; fileRef = 57D7362630740156001977CE /* SocketUtils.swift */; };
+		57D73640307404E1001977CE /* TransferProtocol.swift in Sources */ = {isa = PBXBuildFile; fileRef = 57D7362730740156001977CE /* TransferProtocol.swift */; };
+		57D73641307404E6001977CE /* ClientHandler.swift in Sources */ = {isa = PBXBuildFile; fileRef = 57D7362A30740156001977CE /* ClientHandler.swift */; };
+		57D73642307404E6001977CE /* main.swift in Sources */ = {isa = PBXBuildFile; fileRef = 57D7362B30740156001977CE /* main.swift */; };
+		57D73643307404E6001977CE /* ServerApplication.swift in Sources */ = {isa = PBXBuildFile; fileRef = 57D7362C30740156001977CE /* ServerApplication.swift */; };
+		57D73644307404E6001977CE /* TCPServer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 57D7362D30740156001977CE /* TCPServer.swift */; };
+		57D73645307404E6001977CE /* TransferStatistics.swift in Sources */ = {isa = PBXBuildFile; fileRef = 57D7362E30740156001977CE /* TransferStatistics.swift */; };
+		57D7365130740548001977CE /* ClientApplication.swift in Sources */ = {isa = PBXBuildFile; fileRef = 57D7362030740156001977CE /* ClientApplication.swift */; };
+		57D7365230740548001977CE /* main.swift in Sources */ = {isa = PBXBuildFile; fileRef = 57D7362130740156001977CE /* main.swift */; };
+		57D7365330740548001977CE /* TCPClient.swift in Sources */ = {isa = PBXBuildFile; fileRef = 57D7362230740156001977CE /* TCPClient.swift */; };
+		57D7365430740548001977CE /* FileUtils.swift in Sources */ = {isa = PBXBuildFile; fileRef = 57D7362430740156001977CE /* FileUtils.swift */; };
+		57D7365530740548001977CE /* ProtocolUtils.swift in Sources */ = {isa = PBXBuildFile; fileRef = 57D7362530740156001977CE /* ProtocolUtils.swift */; };
+		57D7365630740548001977CE /* SocketUtils.swift in Sources */ = {isa = PBXBuildFile; fileRef = 57D7362630740156001977CE /* SocketUtils.swift */; };
+		57D7365730740548001977CE /* TransferProtocol.swift in Sources */ = {isa = PBXBuildFile; fileRef = 57D7362730740156001977CE /* TransferProtocol.swift */; };
+/* End PBXBuildFile section */
+
+/* Begin PBXCopyFilesBuildPhase section */
+		57D736143073FF0A001977CE /* CopyFiles */ = {
+			isa = PBXCopyFilesBuildPhase;
+			buildActionMask = 2147483647;
+			dstPath = /usr/share/man/man1/;
+			dstSubfolderSpec = 0;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 1;
+		};
+		57D7364830740522001977CE /* CopyFiles */ = {
+			isa = PBXCopyFilesBuildPhase;
+			buildActionMask = 2147483647;
+			dstPath = /usr/share/man/man1/;
+			dstSubfolderSpec = 0;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 1;
+		};
+/* End PBXCopyFilesBuildPhase section */
+
+/* Begin PBXFileReference section */
+		57D736163073FF0A001977CE /* TCPServer */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = TCPServer; sourceTree = BUILT_PRODUCTS_DIR; };
+		57D7362030740156001977CE /* ClientApplication.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ClientApplication.swift; sourceTree = "<group>"; };
+		57D7362130740156001977CE /* main.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = main.swift; sourceTree = "<group>"; };
+		57D7362230740156001977CE /* TCPClient.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TCPClient.swift; sourceTree = "<group>"; };
+		57D7362430740156001977CE /* FileUtils.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FileUtils.swift; sourceTree = "<group>"; };
+		57D7362530740156001977CE /* ProtocolUtils.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProtocolUtils.swift; sourceTree = "<group>"; };
+		57D7362630740156001977CE /* SocketUtils.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SocketUtils.swift; sourceTree = "<group>"; };
+		57D7362730740156001977CE /* TransferProtocol.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TransferProtocol.swift; sourceTree = "<group>"; };
+		57D7362930740156001977CE /* README.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = README.md; sourceTree = "<group>"; };
+		57D7362A30740156001977CE /* ClientHandler.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ClientHandler.swift; sourceTree = "<group>"; };
+		57D7362B30740156001977CE /* main.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = main.swift; sourceTree = "<group>"; };
+		57D7362C30740156001977CE /* ServerApplication.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ServerApplication.swift; sourceTree = "<group>"; };
+		57D7362D30740156001977CE /* TCPServer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TCPServer.swift; sourceTree = "<group>"; };
+		57D7362E30740156001977CE /* TransferStatistics.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TransferStatistics.swift; sourceTree = "<group>"; };
+		57D7364A30740522001977CE /* TCPClient */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = TCPClient; sourceTree = BUILT_PRODUCTS_DIR; };
+/* End PBXFileReference section */
+
+/* Begin PBXFrameworksBuildPhase section */
+		57D736133073FF0A001977CE /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		57D7364730740522001977CE /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXFrameworksBuildPhase section */
+
+/* Begin PBXGroup section */
+		57D7360D3073FF0A001977CE = {
+			isa = PBXGroup;
+			children = (
+				57D7362330740156001977CE /* Client */,
+				57D7362830740156001977CE /* Common */,
+				57D7362930740156001977CE /* README.md */,
+				57D7362F30740156001977CE /* Server */,
+				57D736173073FF0A001977CE /* Products */,
+			);
+			sourceTree = "<group>";
+		};
+		57D736173073FF0A001977CE /* Products */ = {
+			isa = PBXGroup;
+			children = (
+				57D736163073FF0A001977CE /* TCPServer */,
+				57D7364A30740522001977CE /* TCPClient */,
+			);
+			name = Products;
+			sourceTree = "<group>";
+		};
+		57D7362330740156001977CE /* Client */ = {
+			isa = PBXGroup;
+			children = (
+				57D7362030740156001977CE /* ClientApplication.swift */,
+				57D7362130740156001977CE /* main.swift */,
+				57D7362230740156001977CE /* TCPClient.swift */,
+			);
+			path = Client;
+			sourceTree = "<group>";
+		};
+		57D7362830740156001977CE /* Common */ = {
+			isa = PBXGroup;
+			children = (
+				57D7362430740156001977CE /* FileUtils.swift */,
+				57D7362530740156001977CE /* ProtocolUtils.swift */,
+				57D7362630740156001977CE /* SocketUtils.swift */,
+				57D7362730740156001977CE /* TransferProtocol.swift */,
+			);
+			path = Common;
+			sourceTree = "<group>";
+		};
+		57D7362F30740156001977CE /* Server */ = {
+			isa = PBXGroup;
+			children = (
+				57D7362A30740156001977CE /* ClientHandler.swift */,
+				57D7362B30740156001977CE /* main.swift */,
+				57D7362C30740156001977CE /* ServerApplication.swift */,
+				57D7362D30740156001977CE /* TCPServer.swift */,
+				57D7362E30740156001977CE /* TransferStatistics.swift */,
+			);
+			path = Server;
+			sourceTree = "<group>";
+		};
+/* End PBXGroup section */
+
+/* Begin PBXNativeTarget section */
+		57D736153073FF0A001977CE /* TCPServer */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 57D7361D3073FF0A001977CE /* Build configuration list for PBXNativeTarget "TCPServer" */;
+			buildPhases = (
+				57D736133073FF0A001977CE /* Frameworks */,
+				57D736143073FF0A001977CE /* CopyFiles */,
+				57D7363C307404D4001977CE /* Sources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			name = TCPServer;
+			packageProductDependencies = (
+			);
+			productName = TCPFileTransfer;
+			productReference = 57D736163073FF0A001977CE /* TCPServer */;
+			productType = "com.apple.product-type.tool";
+		};
+		57D7364930740522001977CE /* TCPClient */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 57D7364E30740522001977CE /* Build configuration list for PBXNativeTarget "TCPClient" */;
+			buildPhases = (
+				57D7364630740522001977CE /* Sources */,
+				57D7364730740522001977CE /* Frameworks */,
+				57D7364830740522001977CE /* CopyFiles */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			name = TCPClient;
+			packageProductDependencies = (
+			);
+			productName = TCPClient;
+			productReference = 57D7364A30740522001977CE /* TCPClient */;
+			productType = "com.apple.product-type.tool";
+		};
+/* End PBXNativeTarget section */
+
+/* Begin PBXProject section */
+		57D7360E3073FF0A001977CE /* Project object */ = {
+			isa = PBXProject;
+			attributes = {
+				BuildIndependentTargetsInParallel = 1;
+				LastSwiftUpdateCheck = 2620;
+				LastUpgradeCheck = 2620;
+				TargetAttributes = {
+					57D736153073FF0A001977CE = {
+						CreatedOnToolsVersion = 26.2;
+					};
+					57D7364930740522001977CE = {
+						CreatedOnToolsVersion = 26.2;
+					};
+				};
+			};
+			buildConfigurationList = 57D736113073FF0A001977CE /* Build configuration list for PBXProject "TCPFileTransfer" */;
+			developmentRegion = en;
+			hasScannedForEncodings = 0;
+			knownRegions = (
+				en,
+				Base,
+			);
+			mainGroup = 57D7360D3073FF0A001977CE;
+			minimizedProjectReferenceProxies = 1;
+			preferredProjectObjectVersion = 77;
+			productRefGroup = 57D736173073FF0A001977CE /* Products */;
+			projectDirPath = "";
+			projectRoot = "";
+			targets = (
+				57D736153073FF0A001977CE /* TCPServer */,
+				57D7364930740522001977CE /* TCPClient */,
+			);
+		};
+/* End PBXProject section */
+
+/* Begin PBXSourcesBuildPhase section */
+		57D7363C307404D4001977CE /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				57D73641307404E6001977CE /* ClientHandler.swift in Sources */,
+				57D73642307404E6001977CE /* main.swift in Sources */,
+				57D73643307404E6001977CE /* ServerApplication.swift in Sources */,
+				57D73644307404E6001977CE /* TCPServer.swift in Sources */,
+				57D73645307404E6001977CE /* TransferStatistics.swift in Sources */,
+				57D7363D307404E1001977CE /* FileUtils.swift in Sources */,
+				57D7363E307404E1001977CE /* ProtocolUtils.swift in Sources */,
+				57D7363F307404E1001977CE /* SocketUtils.swift in Sources */,
+				57D73640307404E1001977CE /* TransferProtocol.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		57D7364630740522001977CE /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				57D7365130740548001977CE /* ClientApplication.swift in Sources */,
+				57D7365230740548001977CE /* main.swift in Sources */,
+				57D7365330740548001977CE /* TCPClient.swift in Sources */,
+				57D7365430740548001977CE /* FileUtils.swift in Sources */,
+				57D7365530740548001977CE /* ProtocolUtils.swift in Sources */,
+				57D7365630740548001977CE /* SocketUtils.swift in Sources */,
+				57D7365730740548001977CE /* TransferProtocol.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXSourcesBuildPhase section */
+
+/* Begin XCBuildConfiguration section */
+		57D7361B3073FF0A001977CE /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				ASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOL_EXTENSIONS = YES;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++20";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = dwarf;
+				DEVELOPMENT_TEAM = 6HS63852ZQ;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				ENABLE_TESTABILITY = YES;
+				ENABLE_USER_SCRIPT_SANDBOXING = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu17;
+				GCC_DYNAMIC_NO_PIC = NO;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_OPTIMIZATION_LEVEL = 0;
+				GCC_PREPROCESSOR_DEFINITIONS = (
+					"DEBUG=1",
+					"$(inherited)",
+				);
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				LOCALIZATION_PREFERS_STRING_CATALOGS = YES;
+				MACOSX_DEPLOYMENT_TARGET = 26.2;
+				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
+				MTL_FAST_MATH = YES;
+				ONLY_ACTIVE_ARCH = YES;
+				SDKROOT = macosx;
+				SWIFT_ACTIVE_COMPILATION_CONDITIONS = "DEBUG $(inherited)";
+				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
+			};
+			name = Debug;
+		};
+		57D7361C3073FF0A001977CE /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				ASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOL_EXTENSIONS = YES;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++20";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
+				DEVELOPMENT_TEAM = 6HS63852ZQ;
+				ENABLE_NS_ASSERTIONS = NO;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				ENABLE_USER_SCRIPT_SANDBOXING = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu17;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				LOCALIZATION_PREFERS_STRING_CATALOGS = YES;
+				MACOSX_DEPLOYMENT_TARGET = 26.2;
+				MTL_ENABLE_DEBUG_INFO = NO;
+				MTL_FAST_MATH = YES;
+				SDKROOT = macosx;
+				SWIFT_COMPILATION_MODE = wholemodule;
+			};
+			name = Release;
+		};
+		57D7361E3073FF0A001977CE /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_STYLE = Automatic;
+				DEVELOPMENT_TEAM = 6HS63852ZQ;
+				ENABLE_HARDENED_RUNTIME = YES;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
+				SWIFT_VERSION = 5.0;
+			};
+			name = Debug;
+		};
+		57D7361F3073FF0A001977CE /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_STYLE = Automatic;
+				DEVELOPMENT_TEAM = 6HS63852ZQ;
+				ENABLE_HARDENED_RUNTIME = YES;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
+				SWIFT_VERSION = 5.0;
+			};
+			name = Release;
+		};
+		57D7364F30740522001977CE /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_STYLE = Automatic;
+				DEVELOPMENT_TEAM = 6HS63852ZQ;
+				ENABLE_HARDENED_RUNTIME = YES;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
+				SWIFT_VERSION = 5.0;
+			};
+			name = Debug;
+		};
+		57D7365030740522001977CE /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_STYLE = Automatic;
+				DEVELOPMENT_TEAM = 6HS63852ZQ;
+				ENABLE_HARDENED_RUNTIME = YES;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
+				SWIFT_VERSION = 5.0;
+			};
+			name = Release;
+		};
+/* End XCBuildConfiguration section */
+
+/* Begin XCConfigurationList section */
+		57D736113073FF0A001977CE /* Build configuration list for PBXProject "TCPFileTransfer" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				57D7361B3073FF0A001977CE /* Debug */,
+				57D7361C3073FF0A001977CE /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		57D7361D3073FF0A001977CE /* Build configuration list for PBXNativeTarget "TCPServer" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				57D7361E3073FF0A001977CE /* Debug */,
+				57D7361F3073FF0A001977CE /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		57D7364E30740522001977CE /* Build configuration list for PBXNativeTarget "TCPClient" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				57D7364F30740522001977CE /* Debug */,
+				57D7365030740522001977CE /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+/* End XCConfigurationList section */
+	};
+	rootObject = 57D7360E3073FF0A001977CE /* Project object */;
+}
