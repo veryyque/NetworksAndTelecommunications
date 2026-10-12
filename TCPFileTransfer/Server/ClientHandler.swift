@@ -20,7 +20,7 @@ final class ClientHandler {
 
     private func receiveFile(client: String) throws {
         let nameLength = try receiveUInt32(socket)
-        guard nameLength > 0, nameLength <= TransferProtocol.maxNameBytes else { // ограничение длины пути 4096б
+        guard nameLength > 0, nameLength <= TransferProtocol.maxNameBytes else { // ограничение длины пути
             throw AppError.message("Invalid filename length")
         }
         let nameBytes = try recvAll(socket, count: Int(nameLength))
@@ -33,7 +33,7 @@ final class ClientHandler {
             throw AppError.message("Invalid filename")
         }
         let size = try receiveUInt64(socket)
-        guard size <= TransferProtocol.maxFileSize else { throw AppError.message("File exceeds 1 TB") } //ограничение размера файла 1тб
+        guard size <= TransferProtocol.maxFileSize else { throw AppError.message("File exceeds 1 TB") } //ограничение размера
 
         if mkdir("uploads", mode_t(0o755)) != 0 && errno != EEXIST {
             throw systemError("mkdir uploads")

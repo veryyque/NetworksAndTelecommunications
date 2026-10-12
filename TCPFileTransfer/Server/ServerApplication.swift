@@ -4,7 +4,7 @@ import Darwin
 
 enum ServerApplication {
     static func run() {
-        signal(SIGPIPE, SIG_IGN) //чтобы сервер не завершался аварийно при ошибки записи в сокет
+        signal(SIGPIPE, SIG_IGN) //чтобы сервер не завершался аварийно при ошибке записи в сокет
         do {
             guard CommandLine.arguments.count == 2 else {
                 throw AppError.message("Usage: ./server <port>")
