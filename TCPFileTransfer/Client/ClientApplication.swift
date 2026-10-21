@@ -11,9 +11,8 @@ enum ClientApplication {
             }
             let port = try parsePort(args[3])
             try TCPClient(filePath: args[1], host: args[2], port: port).sendFile()
-            print("File transferred successfully")
         } catch {
-            print("Client error: \(error)")
+            TransferLog.write("[client \(getpid())] ERROR | \(error)")
             exit(1)
         }
     }

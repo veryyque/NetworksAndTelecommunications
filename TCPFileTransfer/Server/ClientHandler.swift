@@ -3,17 +3,20 @@ import Darwin
 
 final class ClientHandler {
     private let socket: Int32
-    init(socket: Int32) { self.socket = socket }
+    private let number: Int
+    init(socket: Int32, number: Int) {
+        self.socket = socket
+        self.number = number
+    }
 
     func run() {
         defer { close(socket) }
-        let client = "\(peerName(socket)) [socket \(socket)]"
-        print("Client connected: \(client)")
+        let client = "клиент \(number) | \(peerName(socket))"
         do {
             try receiveFile(client: client)
             try sendAll(socket, [TransferProtocol.success])
         } catch {
-            print("Client \(client): \(error)")
+            TransferLog.write("[\(client)] ERROR | \(error)")
             try? sendAll(socket, [TransferProtocol.failure])
         }
     }
@@ -50,12 +53,12 @@ final class ClientHandler {
         defer {
             if fileDescriptor >= 0 { close(fileDescriptor) }
             if !complete && unlinkat(directory, output.name, 0) != 0 {
-                print(systemError("remove incomplete file"))
+                TransferLog.write("[\(client)] ERROR | \(systemError("remove incomplete file"))")
             }
         }
-        print("Receiving: \(output.name) [\(client)]")
-        let statistics = TransferStatistics(client: client)
-        defer { statistics.printIfNeeded(force: true) }
+        TransferDashboard.update(number: number, client: client, file: output.name, status: "START",received: 0, size: size, current: 0, average: 0)
+        let statistics = TransferStatistics(number: number, client: client, file: output.name, fileSize: size)
+        defer { statistics.printIfNeeded(force: true, status: complete ? "SAVED" : "FAILED") }
         var buffer = [UInt8](repeating: 0, count: TransferProtocol.bufferSize)
         var receivedBytes: UInt64 = 0
         while receivedBytes < size {
@@ -80,6 +83,5 @@ final class ClientHandler {
         fileDescriptor = -1
         guard closeResult == 0 else { throw systemError("close output file") }
         complete = true
-        print("File \(output.name) received successfully")
     }
 }

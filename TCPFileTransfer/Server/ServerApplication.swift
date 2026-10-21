@@ -12,7 +12,7 @@ enum ServerApplication {
             let port = try parsePort(CommandLine.arguments[1])
             try TCPServer(port: port).run()
         } catch {
-            print("Server error: \(error)")
+            TransferLog.write("[server] ERROR | \(error)")
             exit(1)
         }
     }

@@ -32,20 +32,22 @@ final class TCPServer {
         defer { pthread_attr_destroy(&attributes) }
         code = pthread_attr_setdetachstate(&attributes, Int32(PTHREAD_CREATE_DETACHED))
         guard code == 0 else { throw AppError.message("pthread_attr_setdetachstate: \(code)") }
-        print("Server started on port \(port)")
+        TransferLog.write("[server] LISTEN | port=\(port) | speed=MB/s (1 MB = 1,000,000 bytes)")
 
+        var clientNumber = 0
         while true {
             let client = accept(listener, nil, nil)
             if client < 0 {
-                if errno != EINTR { print(systemError("accept")) }
+                if errno != EINTR { TransferLog.write("[server] ERROR | \(systemError("accept"))") }
                 continue
             }
-            startClientThread(socket: client, attributes: &attributes)
+            clientNumber += 1
+            startClientThread(socket: client, clientNumber: clientNumber, attributes: &attributes)
         }
     }
 
-    private func startClientThread(socket: Int32, attributes: inout pthread_attr_t) {
-        let handler = ClientHandler(socket: socket)
+    private func startClientThread(socket: Int32, clientNumber: Int, attributes: inout pthread_attr_t) {
+        let handler = ClientHandler(socket: socket, number: clientNumber)
         let context = Unmanaged.passRetained(handler).toOpaque()
         var thread: pthread_t?
         let result = pthread_create(&thread, &attributes, handleClient, context)
@@ -53,7 +55,7 @@ final class TCPServer {
         if result != 0 {
             Unmanaged<ClientHandler>.fromOpaque(context).release()
             close(socket)
-            print("pthread_create: \(String(cString: strerror(result)))")
+            TransferLog.write("[клиент \(clientNumber)] ERROR | pthread_create: \(String(cString: strerror(result)))")
         }
     }
 }

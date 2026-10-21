@@ -32,8 +32,7 @@ final class TCPClient {
         }
         let socket = try connectToServer(host: host, port: port)
         defer { close(socket) }
-        print("Connected to server")
-        print("Sending \(name)")
+        TransferLog.write("[client \(getpid())] START | server=\(host):\(port) | file=\(name.debugDescription) | size=\(size) B")
         try sendAll(socket, encodeUInt32(UInt32(nameBytes.count))) //отпр длину имени
         try sendAll(socket, nameBytes) //имя
         try sendAll(socket, encodeUInt64(size)) //отпр размер содержимого файла
@@ -56,5 +55,6 @@ final class TCPClient {
         guard status[0] == TransferProtocol.success else {
             throw AppError.message("Server reported a transfer error")
         }
+        TransferLog.write("[client \(getpid())] DONE | server=\(host):\(port) | file=\(name.debugDescription) | sent=\(sentBytes) B")
     }
 }

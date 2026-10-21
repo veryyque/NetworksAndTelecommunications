@@ -1,6 +1,40 @@
 import Foundation
 import Darwin
 
+enum TransferLog {
+    private static let lock = NSLock()
+    private static var screenLines: [String] = []
+    static var isTerminal: Bool {
+        isatty(STDOUT_FILENO) == 1 && ProcessInfo.processInfo.environment["TERM"] != "dumb"
+    }
+
+    private static func clearScreenLines() {
+        if !screenLines.isEmpty {
+            print("\u{1B}[\(screenLines.count)A\r\u{1B}[J", terminator: "")
+        }
+    }
+
+    static func render(_ lines: [String]) {
+        lock.lock()
+        defer { lock.unlock() }
+        clearScreenLines()
+        screenLines = lines
+        print(lines.joined(separator: "\n"))
+        fflush(stdout)
+    }
+
+    static func write(_ message: String) {
+        let line = message.replacingOccurrences(of: "\r", with: "\\r")
+            .replacingOccurrences(of: "\n", with: "\\n")
+        lock.lock()
+        defer { lock.unlock() }
+        clearScreenLines()
+        print(line)
+        if !screenLines.isEmpty { print(screenLines.joined(separator: "\n")) }
+        fflush(stdout)
+    }
+}
+
 enum TransferProtocol {
     static let maxNameBytes = 4096
     static let maxFileSize: UInt64 = 1000000000000
