@@ -23,9 +23,9 @@ final class TransferStatistics {
         guard force || interval >= 3 else { return }
         let intervalSeconds = max(interval, 0.000001)
         let totalSeconds = max(now.timeIntervalSince(startTime), 0.000001)
-        let instant = Double(bytesSinceLastPrint) / intervalSeconds
-        let average = Double(totalReceivedBytes) / totalSeconds
-        print("Client \(client)\nInstant speed: \(String(format: "%.0f", instant)) bytes/s\nAverage speed: \(String(format: "%.0f", average)) bytes/s")
+        let instant = Double(bytesSinceLastPrint) / intervalSeconds / 1_000_000
+        let average = Double(totalReceivedBytes) / totalSeconds / 1_000_000
+        print("Client \(client)\nInstant speed: \(String(format: "%.3f", instant)) Mb/s\nAverage speed: \(String(format: "%.3f", average)) Mb/s")
         lastPrintTime = now
         bytesSinceLastPrint = 0
     }

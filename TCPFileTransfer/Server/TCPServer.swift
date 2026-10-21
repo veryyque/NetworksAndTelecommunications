@@ -50,7 +50,7 @@ final class TCPServer {
         var thread: pthread_t?
         let result = pthread_create(&thread, &attributes, handleClient, context)
 
-        if result != 0 { //поток клиента не запустился
+        if result != 0 {
             Unmanaged<ClientHandler>.fromOpaque(context).release()
             close(socket)
             print("pthread_create: \(String(cString: strerror(result)))")

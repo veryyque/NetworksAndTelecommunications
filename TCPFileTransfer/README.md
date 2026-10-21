@@ -33,14 +33,26 @@ swiftc Common/*.swift Client/*.swift -o client_exe
 
 ```bash
 cd /Users/veronikamoskaluk/Desktop/Networks/TCPFileTransfer
-./client_exe test.txt 127.0.0.1 6767
+./client_exe minions.jpg 127.0.0.1 6767
 ```
-
-По имени вместо IP:
+## 4. Скрипт для замедления передачи данных в третьем терминале
+```bash
+./limit.sh
+```
 
 ```bash
-./client_exe test.txt localhost 6767
+./client_exe test.MOV localhost 6767 &
+./client_exe test.MOV localhost 6767 &
+./client_exe minions.jpg localhost 6767 &
+wait
 ```
+## 5. Изменение MTU для измерения скорости
+
+```bash
+ifconfig lo0 | head -n 1
+sudo ifconfig lo0 mtu 1500
+```
+
 
 ## Запуск в Xcode
 
