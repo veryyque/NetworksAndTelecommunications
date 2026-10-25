@@ -25,3 +25,4 @@
 - [получение списка статей с географическими координатами в окрестности выбранной точки](https://www.mediawiki.org/wiki/Extension:GeoData#API)
 - [получение описания места по его id](https://www.mediawiki.org/wiki/Extension:TextExtracts#API)
 
+> Запуск доступен из Xcode при открытии файла Places.xcodeproj
