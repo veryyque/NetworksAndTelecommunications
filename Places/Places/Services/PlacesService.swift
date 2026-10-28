@@ -53,15 +53,51 @@ struct PlacesService: PlacesServicing {
   private func loadDescription(_ nearby: Nearby) async throws -> Place {
     struct Response: Decodable {
       struct Query: Decodable {
-        struct Page: Decodable { let extract: String? }
+        struct Page: Decodable {
+          struct Thumbnail: Decodable { let source: URL }
+          let extract: String?
+          let thumbnail: Thumbnail?
+          let pageimage: String?
+        }
         let pages: [Page]
       }
       let query: Query
     }
-    let response: Response = try await wiki(["prop": "extracts", "pageids": String(nearby.pageid), "exintro": "1", "explaintext": "1",])
+    let response: Response = try await wiki(["prop": "extracts|pageimages", "piprop": "thumbnail|name", "pithumbsize": "640", "pilicense": "free", "pageids": String(nearby.pageid), "exintro": "1", "explaintext": "1",])
     let description = response.query.pages.first?.extract?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
-    return Place(id: nearby.pageid, title: nearby.title, distance: nearby.dist, description: description.isEmpty ? "Краткого описания нет." : description)
+    let page = response.query.pages.first
+    let imageData = try await loadImage(page?.thumbnail?.source)
+    var imagePageURL: URL?
+    if let name = page?.pageimage {
+      var components = URLComponents(string: "https://ru.wikipedia.org/w/index.php")!
+      components.queryItems = [URLQueryItem(name: "title", value: "File:" + name)]
+      imagePageURL = components.url
+    }
+    return Place(id: nearby.pageid, title: nearby.title, distance: nearby.dist,
+                 description: description.isEmpty ? "Краткого описания нет." : description,
+                 imageData: imageData, imagePageURL: imagePageURL)
   }
+  // Фото необязательно, но его загрузка завершается до публикации общего результата.
+  private func loadImage(_ url: URL?) async throws -> Data? {
+    try Task.checkCancellation()
+    guard let url, url.scheme == "https" else { return nil }
+    do {
+      var request = URLRequest(url: url)
+      request.timeoutInterval = 15
+      request.setValue("PlacesStudentApp/1.0 (macOS educational project)", forHTTPHeaderField: "User-Agent")
+      let (data, response) = try await session.data(for: request)
+      try Task.checkCancellation()
+      guard let response = response as? HTTPURLResponse,
+            (200..<300).contains(response.statusCode),
+            response.mimeType?.hasPrefix("image/") == true else { return nil }
+      return data
+    } catch {
+      try Task.checkCancellation()
+      if error is CancellationError { throw error }
+      return nil
+    }
+  }
+
   private func wiki<T: Decodable>(_ parameters: [String: String]) async throws -> T {
     try await request("https://ru.wikipedia.org/w/api.php", parameters.merging(["action": "query", "format": "json", "formatversion": "2",]) { first, _ in first })
   }

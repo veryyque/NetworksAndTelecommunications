@@ -5,6 +5,9 @@ struct Weather: Decodable, Sendable {
     let temp: Double
     let feels_like: Double
     let humidity: Int
+    let pressure: Double
+
+    var pressureMMHg: Double { pressure * 0.750061683 }
   }
   struct Wind: Decodable, Sendable { let speed: Double }
   struct Condition: Decodable, Sendable { let description: String }

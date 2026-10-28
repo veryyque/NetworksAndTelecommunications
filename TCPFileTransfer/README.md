@@ -54,6 +54,10 @@ sudo ifconfig lo0 mtu 1500
 ```
 
 
+### График MTU
+
+![График MTU](images/mtu-graph.png)
+
 ## Запуск в Xcode
 
 **Product -> Scheme-> Edit Scheme -> Run -> Arguments**

@@ -11,6 +11,8 @@ struct WeatherCardView: View {
         Text(
           "Ощущается: \(weather.main.feels_like, specifier: "%.1f") °C · Влажность: \(weather.main.humidity)%"
         )
+        Text("Давление: \(weather.main.pressureMMHg, specifier: "%.0f") мм рт. ст.")
+          .help("Давление, приведённое к уровню моря")
         Text("Ветер: \(weather.wind.speed, specifier: "%.1f") м/с")
       }.frame(maxWidth: .infinity, alignment: .leading).padding(8)
     }
