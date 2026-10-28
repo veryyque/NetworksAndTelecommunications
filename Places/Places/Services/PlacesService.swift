@@ -26,6 +26,24 @@ struct PlacesService: PlacesServicing {
     return try await LocationDetails(location: location, weather: weather, places: places)
   }
     
+  func loadArticle(id: Int) async throws -> String {
+    struct Response: Decodable {
+      struct Query: Decodable {
+        struct Page: Decodable { let extract: String? }
+        let pages: [Page]
+      }
+      let query: Query?
+    }
+    let response: Response = try await wiki([
+      "prop": "extracts", "pageids": String(id), "explaintext": "1"
+    ])
+    guard let text = response.query?.pages.first?.extract?
+      .trimmingCharacters(in: .whitespacesAndNewlines), !text.isEmpty else {
+      throw APIError(message: "Текст этой статьи недоступен.")
+    }
+    return text
+  }
+
   private func loadWeather(_ location: Location) async throws -> Weather {
     try await request("https://api.openweathermap.org/data/2.5/weather",[ "lat": String(location.point.lat), "lon": String(location.point.lng), "appid": weatherKey, "units": "metric", "lang": "ru",])
   }
@@ -77,7 +95,6 @@ struct PlacesService: PlacesServicing {
                  description: description.isEmpty ? "Краткого описания нет." : description,
                  imageData: imageData, imagePageURL: imagePageURL)
   }
-  // Фото необязательно, но его загрузка завершается до публикации общего результата.
   private func loadImage(_ url: URL?) async throws -> Data? {
     try Task.checkCancellation()
     guard let url, url.scheme == "https" else { return nil }

@@ -15,11 +15,11 @@ struct LocationListView: View {
       }
       ScrollView {
         VStack(spacing: 8) {
-          ForEach(locations) { location in
+          ForEach(Array(locations.enumerated()), id: \.element.id) { index, location in
             Button {
               onSelect(location)
             } label: {
-              LocationRowView(location: location, isSelected: selectedID == location.id)
+              LocationRowView(number: index + 1, location: location, isSelected: selectedID == location.id)
             }.buttonStyle(.plain)
           }
         }.padding(.horizontal)
