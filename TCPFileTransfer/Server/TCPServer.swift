@@ -38,7 +38,10 @@ final class TCPServer {
         while true {
             let client = accept(listener, nil, nil)
             if client < 0 {
-                if errno != EINTR { TransferLog.write("[server] ERROR | \(systemError("accept"))") }
+                if errno != EINTR {
+                    TransferLog.write("[server] ERROR | \(systemError("accept"))")
+                    Thread.sleep(forTimeInterval: 0.1)
+                }
                 continue
             }
             clientNumber += 1

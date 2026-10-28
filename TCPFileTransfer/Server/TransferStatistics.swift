@@ -11,6 +11,7 @@ enum TransferDashboard {
     }
     private static let lock = NSLock()
     private static var rows: [Int: Row] = [:]
+    private static var scrolling = false
 
     private static func column(_ value: String, _ width: Int) -> String {
         let safe = String(value.unicodeScalars.map { scalar -> Character in
@@ -41,7 +42,17 @@ enum TransferDashboard {
         _ = ioctl(STDOUT_FILENO, TIOCGWINSZ, &terminal)
         let width = terminal.ws_col > 0 ? Int(terminal.ws_col) - 1 : 79
         let capacity = max(1, (terminal.ws_row > 0 ? Int(terminal.ws_row) : 24) - 6)
-        let ids = Array(rows.keys.sorted().suffix(capacity))
+        let active = rows.keys.sorted().filter { rows[$0]!.status != "SAVED" && rows[$0]!.status != "FAILED" }
+        if active.count > capacity && !scrolling {
+            scrolling = true
+            TransferLog.render([])
+        }
+        if scrolling {
+            TransferLog.write("[\(client)] \(status) | file=\(file.debugDescription) | received=\(received)/\(size) B | current=\(String(format: "%.3f", current)) MB/s | average=\(String(format: "%.3f", average)) MB/s")
+            return
+        }
+        let finished = rows.keys.sorted().filter { !active.contains($0) }
+        let ids = (active + finished.suffix(max(0, capacity - active.count))).sorted()
         let fileWidth = max(5, min(30, width - 55))
         var lines = ["TCP transfers | speed: MB/s | updated every 3 s",
                      column("Клиент", 10) + column("Статус", 11) + column("Файл", fileWidth) + column("%", 7) + column("Текущая", 12) + "Средняя"]
@@ -51,7 +62,7 @@ enum TransferDashboard {
                 + column(String(format: "%.1f", row.progress), 7)
                 + column(String(format: "%.3f", row.current), 12) + String(format: "%.3f", row.average))
         }
-        if ids.count < rows.count { lines.append("Показаны последние \(ids.count) из \(rows.count) записей.") }
+        if ids.count < rows.count { lines.append("Все активные клиенты показаны; завершённых скрыто: \(rows.count - ids.count).") }
         TransferLog.render(lines.map { String($0.prefix(max(1, width))) })
     }
 }
@@ -59,11 +70,14 @@ enum TransferDashboard {
 final class TransferStatistics {
     private let client: String
     private let number: Int
-    private let file: String
-    private let fileSize: UInt64
+    private var file: String
+    private var fileSize: UInt64
+    private let lock = NSLock()
+    private var timer: DispatchSourceTimer?
+    private var finished = false
     private let startTime = ProcessInfo.processInfo.systemUptime
     private var lastPrintTime: TimeInterval
-    private(set) var totalReceivedBytes: UInt64 = 0 //изменение доступно только внутри класса, чтение всем
+    private var totalReceivedBytes: UInt64 = 0 //изменение доступно только внутри класса, чтение всем
     private var bytesSinceLastPrint: UInt64 = 0
 
     init(number: Int, client: String, file: String, fileSize: UInt64) {
@@ -74,12 +88,46 @@ final class TransferStatistics {
         lastPrintTime = startTime
     }
 
+    func start() {
+        let timer = DispatchSource.makeTimerSource(queue: DispatchQueue.global())
+        timer.schedule(deadline: .now() + 3, repeating: 3)
+        timer.setEventHandler { [weak self] in self?.printIfNeeded(force: true) }
+        self.timer = timer
+        timer.resume()
+    }
+
+    func setFile(_ name: String, size: UInt64) {
+        lock.lock()
+        defer { lock.unlock() }
+        file = name
+        fileSize = size
+    }
+
+    func finish(status: String) {
+        lock.lock()
+        defer { lock.unlock() }
+        guard !finished else { return }
+        timer?.cancel()
+        timer = nil
+        printLocked(force: true, status: status)
+        finished = true
+    }
+
     func add(_ count: Int) {
+        lock.lock()
+        defer { lock.unlock() }
         totalReceivedBytes += UInt64(count)
         bytesSinceLastPrint += UInt64(count)
     }
 
     func printIfNeeded(force: Bool = false, status: String = "RECEIVING") {
+        lock.lock()
+        defer { lock.unlock() }
+        guard !finished else { return }
+        printLocked(force: force, status: status)
+    }
+
+    private func printLocked(force: Bool, status: String) {
         let now = ProcessInfo.processInfo.systemUptime
         let interval = now - lastPrintTime
         guard force || interval >= 3 else { return }

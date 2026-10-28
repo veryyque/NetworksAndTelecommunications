@@ -48,7 +48,9 @@ final class TCPClient {
                 throw systemError("read file")
             }
             guard count > 0 else { throw AppError.message("Input file ended too early") }
-            try sendAll(socket, Array(buffer.prefix(count))) //отпр часть содержимого
+            try buffer.withUnsafeBytes { bytes in
+                try sendAll(socket, UnsafeRawBufferPointer(rebasing: bytes[..<count]))
+            }
             sentBytes += UInt64(count)
         }
         let status = try recvAll(socket, count: 1)

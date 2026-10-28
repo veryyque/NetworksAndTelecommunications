@@ -1,19 +1,52 @@
 import Foundation
 import Darwin
 
-func sendAll(_ socket: Int32, _ bytes: [UInt8]) throws {
-    try bytes.withUnsafeBytes { buffer in
-        guard let base = buffer.baseAddress else { return }
-        var sent = 0
-        while sent < buffer.count {
-            let n = send(socket, base.advanced(by: sent), buffer.count - sent, 0)
-            if n < 0 {
-                if errno == EINTR { continue }
-                throw systemError("send")
-            }
-            guard n > 0 else { throw AppError.message("send returned zero") }
-            sent += n
+func setSocketTimeouts(_ socket: Int32) throws {
+    var timeout = timeval(tv_sec: 30, tv_usec: 0)
+    for option in [SO_RCVTIMEO, SO_SNDTIMEO] {
+        guard setsockopt(socket, SOL_SOCKET, option, &timeout, socklen_t(MemoryLayout<timeval>.size)) == 0 else {
+            throw systemError("setsockopt timeout")
         }
+    }
+}
+
+func sendAll(_ socket: Int32, _ bytes: [UInt8]) throws {
+    try bytes.withUnsafeBytes { try sendAll(socket, $0) }
+}
+
+func sendAll(_ socket: Int32, _ buffer: UnsafeRawBufferPointer) throws {
+    guard let base = buffer.baseAddress else { return }
+    var sent = 0
+    while sent < buffer.count {
+        let n = send(socket, base.advanced(by: sent), buffer.count - sent, 0)
+        if n < 0 {
+            if errno == EINTR { continue }
+            throw systemError("send")
+        }
+        guard n > 0 else { throw AppError.message("send returned zero") }
+        sent += n
+    }
+}
+
+private func connectWithTimeout(_ fd: Int32, _ address: addrinfo) throws {
+    let flags = fcntl(fd, F_GETFL)
+    guard flags >= 0, fcntl(fd, F_SETFL, flags | O_NONBLOCK) == 0 else { throw systemError("fcntl") }
+    defer { _ = fcntl(fd, F_SETFL, flags) }
+    if connect(fd, address.ai_addr, address.ai_addrlen) == 0 { return }
+    guard errno == EINPROGRESS else { throw systemError("connect") }
+    let deadline = ProcessInfo.processInfo.systemUptime + 30
+    while true {
+        let remaining = deadline - ProcessInfo.processInfo.systemUptime
+        guard remaining > 0 else { throw AppError.message("connect timeout") }
+        var event = pollfd(fd: fd, events: Int16(POLLOUT), revents: 0)
+        let result = poll(&event, 1, Int32(remaining * 1000))
+        if result < 0 && errno == EINTR { continue }
+        guard result > 0 else { throw AppError.message("connect failed or timed out") }
+        var error: Int32 = 0
+        var length = socklen_t(MemoryLayout<Int32>.size)
+        guard getsockopt(fd, SOL_SOCKET, SO_ERROR, &error, &length) == 0 else { throw systemError("getsockopt") }
+        guard error == 0 else { throw AppError.message("connect: \(String(cString: strerror(error)))") }
+        return
     }
 }
 
@@ -52,8 +85,13 @@ func connectToServer(host: String, port: UInt16) throws -> Int32 {
         let address = entry.pointee
         let fd = socket(address.ai_family, address.ai_socktype, address.ai_protocol)
         if fd >= 0 {
-            if connect(fd, address.ai_addr, address.ai_addrlen) == 0 { return fd }
-            lastError = systemError("connect")
+            do {
+                try connectWithTimeout(fd, address)
+                try setSocketTimeouts(fd)
+                return fd
+            } catch {
+                lastError = AppError.message(String(describing: error))
+            }
             close(fd)
         } else { lastError = systemError("socket") }
         current = address.ai_next

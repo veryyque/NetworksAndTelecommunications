@@ -12,8 +12,14 @@ final class ClientHandler {
     func run() {
         defer { close(socket) }
         let client = "клиент \(number) | \(peerName(socket))"
+        let statistics = TransferStatistics(number: number, client: client, file: "(header)", fileSize: 0)
+        var saved = false
+        statistics.start()
+        defer { statistics.finish(status: saved ? "SAVED" : "FAILED") }
         do {
-            try receiveFile(client: client)
+            try setSocketTimeouts(socket)
+            try receiveFile(client: client, statistics: statistics)
+            saved = true
             try sendAll(socket, [TransferProtocol.success])
         } catch {
             TransferLog.write("[\(client)] ERROR | \(error)")
@@ -21,7 +27,7 @@ final class ClientHandler {
         }
     }
 
-    private func receiveFile(client: String) throws {
+    private func receiveFile(client: String, statistics: TransferStatistics) throws {
         let nameLength = try receiveUInt32(socket)
         guard nameLength > 0, nameLength <= TransferProtocol.maxNameBytes else { // ограничение длины пути
             throw AppError.message("Invalid filename length")
@@ -56,9 +62,7 @@ final class ClientHandler {
                 TransferLog.write("[\(client)] ERROR | \(systemError("remove incomplete file"))")
             }
         }
-        TransferDashboard.update(number: number, client: client, file: output.name, status: "START",received: 0, size: size, current: 0, average: 0)
-        let statistics = TransferStatistics(number: number, client: client, file: output.name, fileSize: size)
-        defer { statistics.printIfNeeded(force: true, status: complete ? "SAVED" : "FAILED") }
+        statistics.setFile(output.name, size: size)
         var buffer = [UInt8](repeating: 0, count: TransferProtocol.bufferSize)
         var receivedBytes: UInt64 = 0
         while receivedBytes < size {
@@ -76,9 +80,13 @@ final class ClientHandler {
             try buffer.withUnsafeBytes { bytes in
                 try writeAll(fileDescriptor, bytes, count: count)
             }
-            statistics.printIfNeeded()
         }
         guard receivedBytes == size else { throw AppError.message("File size mismatch") }
+        var info = stat()
+        guard fstat(fileDescriptor, &info) == 0 else { throw systemError("fstat output file") }
+        guard info.st_size >= 0, UInt64(info.st_size) == size else {
+            throw AppError.message("Saved file size mismatch")
+        }
         let closeResult = close(fileDescriptor)
         fileDescriptor = -1
         guard closeResult == 0 else { throw systemError("close output file") }
