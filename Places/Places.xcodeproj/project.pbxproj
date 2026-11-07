@@ -35,6 +35,11 @@
 			path = Places;
 			sourceTree = "<group>";
 		};
+		A123456789ABCDEF01234567 /* PlacesTests */ = {
+            isa = PBXFileSystemSynchronizedRootGroup;
+            path = PlacesTests;
+            sourceTree = "<group>";
+        };
 /* End PBXFileSystemSynchronizedRootGroup section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -66,6 +71,7 @@
 			isa = PBXGroup;
 			children = (
 				57A90A1F308D0120004EF94C /* Places */,
+				A123456789ABCDEF01234567 /* PlacesTests */,
 				57A90A1E308D0120004EF94C /* Products */,
 			);
 			sourceTree = "<group>";
@@ -118,6 +124,7 @@
 			dependencies = (
 				57A90A31308D0123004EF94C /* PBXTargetDependency */,
 			);
+			fileSystemSynchronizedGroups = (A123456789ABCDEF01234567 /* PlacesTests */);
 			name = PlacesTests;
 			packageProductDependencies = (
 			);

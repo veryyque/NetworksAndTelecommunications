@@ -10,7 +10,8 @@ final class PlacesViewModel: ObservableObject {
   @Published private(set) var searching = false
   @Published private(set) var loading = false
   @Published private(set) var searched = false
-  @Published private(set) var error: String?
+  @Published private(set) var searchError: String?
+  @Published private(set) var detailsError: String?
   private var task: Task<Void, Never>?
   private var revision = 0
   private let makeService: () -> any PlacesServicing
@@ -37,7 +38,8 @@ final class PlacesViewModel: ObservableObject {
     locations = []
     details = nil
     selected = nil
-    error = nil
+    searchError = nil
+    detailsError = nil
     searching = true
     loading = false
     searched = false
@@ -50,7 +52,7 @@ final class PlacesViewModel: ObservableObject {
         searched = true
       } catch {
         guard !Task.isCancelled, self.revision == revision else { return }
-        self.error = error.localizedDescription
+        self.searchError = error.localizedDescription
       }
     }
   }
@@ -61,7 +63,8 @@ final class PlacesViewModel: ObservableObject {
     let service = makeService()
     selected = location
     details = nil
-    error = nil
+    searchError = nil
+    detailsError = nil
     loading = true
     searching = false
     task = Task {
@@ -72,7 +75,7 @@ final class PlacesViewModel: ObservableObject {
         details = result
       } catch {
         guard !Task.isCancelled, self.revision == revision else { return }
-        self.error = error.localizedDescription
+        self.detailsError = error.localizedDescription
       }
     }
   }

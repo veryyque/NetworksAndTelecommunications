@@ -16,13 +16,8 @@ struct ContentView: View {
       SearchBarView(query: $model.query, canSearch: model.canSearch, onSearch: model.search)
       Divider()
       HSplitView {
-        LocationListView(
-          locations: model.locations, selectedID: model.selected?.id,
-          searching: model.searching, searched: model.searched, onSelect: model.select)
-        DetailsPanelView(
-          details: model.details, loading: model.loading, error: model.error,
-          canRetry: model.selected != nil
-        ) {
+        LocationListView(locations: model.locations, selectedID: model.selected?.id,searching: model.searching, searched: model.searched, error: model.searchError, onSelect: model.select)
+        DetailsPanelView(details: model.details, loading: model.loading, error: model.detailsError,canRetry: model.selected != nil) {
           if let selected = model.selected { model.select(selected) }
         }
       }

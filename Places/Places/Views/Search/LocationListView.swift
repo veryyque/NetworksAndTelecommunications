@@ -5,10 +5,15 @@ struct LocationListView: View {
   let selectedID: String?
   let searching: Bool
   let searched: Bool
+  let error: String?
   let onSelect: (Location) -> Void
   var body: some View {
     VStack(alignment: .leading) {
       Text("Варианты локации").font(.caption.bold()).foregroundStyle(.secondary).padding()
+      if let error {
+        Label(error, systemImage: "exclamationmark.triangle")
+          .foregroundStyle(.red).padding(.horizontal)
+      }
       if searching { ProgressView("Поиск…").padding() }
       if searched && locations.isEmpty {
         Text("Ничего не найдено. Попробуйте другое название.").padding()

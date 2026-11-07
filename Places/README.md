@@ -27,3 +27,5 @@
 - [получение изображения места](https://www.mediawiki.org/wiki/Extension:PageImages#API)
 
 > Запуск доступен из Xcode при открытии файла Places.xcodeproj
+
+> Запуск тестов доступен через Xcode Cmd+U
