@@ -1,0 +1,321 @@
+// !$*UTF8*$!
+{
+"archiveVersion" = 1;
+"classes" = {
+};
+"objectVersion" = 56;
+"objects" = {
+"000000000000000000000022" = {
+"isa" = "PBXFileReference";
+"lastKnownFileType" = "sourcecode.swift";
+"path" = "Application.swift";
+"sourceTree" = "<group>";
+};
+"000000000000000000000023" = {
+"isa" = "PBXBuildFile";
+"fileRef" = "000000000000000000000022";
+};
+"000000000000000000000001" = {
+"isa" = "PBXFileReference";
+"lastKnownFileType" = "sourcecode.swift";
+"path" = "main.swift";
+"sourceTree" = "<group>";
+};
+"000000000000000000000002" = {
+"isa" = "PBXFileReference";
+"lastKnownFileType" = "sourcecode.swift";
+"path" = "Socket.swift";
+"sourceTree" = "<group>";
+};
+"000000000000000000000003" = {
+"isa" = "PBXFileReference";
+"lastKnownFileType" = "sourcecode.swift";
+"path" = "DNS.swift";
+"sourceTree" = "<group>";
+};
+"000000000000000000000004" = {
+"isa" = "PBXFileReference";
+"lastKnownFileType" = "sourcecode.swift";
+"path" = "Proxy.swift";
+"sourceTree" = "<group>";
+};
+"000000000000000000000005" = {
+"isa" = "PBXFileReference";
+"lastKnownFileType" = "sourcecode.swift";
+"path" = "DNSTests.swift";
+"sourceTree" = "<group>";
+};
+"000000000000000000000006" = {
+"isa" = "PBXFileReference";
+"lastKnownFileType" = "net.daringfireball.markdown";
+"path" = "README.md";
+"sourceTree" = "<group>";
+};
+"000000000000000000000007" = {
+"isa" = "PBXFileReference";
+"explicitFileType" = "compiled.mach-o.executable";
+"path" = "socks-proxy";
+"sourceTree" = "BUILT_PRODUCTS_DIR";
+"includeInIndex" = 0;
+};
+"000000000000000000000008" = {
+"isa" = "PBXFileReference";
+"explicitFileType" = "wrapper.cfbundle";
+"path" = "SOCKSProxyTests.xctest";
+"sourceTree" = "BUILT_PRODUCTS_DIR";
+"includeInIndex" = 0;
+};
+"000000000000000000000009" = {
+"isa" = "PBXGroup";
+"children" = (
+"000000000000000000000001",
+"000000000000000000000022",
+"000000000000000000000002",
+"000000000000000000000003",
+"000000000000000000000004",
+);
+"path" = "Sources/SOCKSProxy";
+"sourceTree" = "<group>";
+};
+"00000000000000000000000A" = {
+"isa" = "PBXGroup";
+"children" = (
+"000000000000000000000005",
+);
+"path" = "Tests/Swift";
+"sourceTree" = "<group>";
+};
+"00000000000000000000000B" = {
+"isa" = "PBXGroup";
+"children" = (
+"000000000000000000000007",
+"000000000000000000000008",
+);
+"name" = "Products";
+"sourceTree" = "<group>";
+};
+"00000000000000000000000C" = {
+"isa" = "PBXGroup";
+"children" = (
+"000000000000000000000009",
+"00000000000000000000000A",
+"000000000000000000000006",
+"00000000000000000000000B",
+);
+"sourceTree" = "<group>";
+};
+"00000000000000000000000D" = {
+"isa" = "PBXBuildFile";
+"fileRef" = "000000000000000000000001";
+};
+"00000000000000000000000E" = {
+"isa" = "PBXBuildFile";
+"fileRef" = "000000000000000000000002";
+};
+"00000000000000000000000F" = {
+"isa" = "PBXBuildFile";
+"fileRef" = "000000000000000000000003";
+};
+"000000000000000000000010" = {
+"isa" = "PBXBuildFile";
+"fileRef" = "000000000000000000000004";
+};
+"000000000000000000000011" = {
+"isa" = "PBXSourcesBuildPhase";
+"buildActionMask" = 2147483647;
+"files" = (
+"00000000000000000000000D",
+"000000000000000000000023",
+"00000000000000000000000E",
+"00000000000000000000000F",
+"000000000000000000000010",
+);
+"runOnlyForDeploymentPostprocessing" = 0;
+};
+"000000000000000000000012" = {
+"isa" = "PBXBuildFile";
+"fileRef" = "000000000000000000000005";
+};
+"000000000000000000000013" = {
+"isa" = "PBXBuildFile";
+"fileRef" = "000000000000000000000003";
+};
+"000000000000000000000014" = {
+"isa" = "PBXBuildFile";
+"fileRef" = "000000000000000000000002";
+};
+"000000000000000000000015" = {
+"isa" = "PBXSourcesBuildPhase";
+"buildActionMask" = 2147483647;
+"files" = (
+"000000000000000000000012",
+"000000000000000000000013",
+"000000000000000000000014",
+);
+"runOnlyForDeploymentPostprocessing" = 0;
+};
+"000000000000000000000016" = {
+"isa" = "XCBuildConfiguration";
+"buildSettings" = {
+"SDKROOT" = "macosx";
+"MACOSX_DEPLOYMENT_TARGET" = "13.0";
+"SWIFT_VERSION" = "5.0";
+"CLANG_ENABLE_MODULES" = "YES";
+"CODE_SIGN_IDENTITY" = "-";
+"CODE_SIGN_STYLE" = "Manual";
+"SWIFT_OPTIMIZATION_LEVEL" = "-Onone";
+"ENABLE_TESTABILITY" = "YES";
+"DEBUG_INFORMATION_FORMAT" = "dwarf";
+};
+"name" = "Debug";
+};
+"000000000000000000000017" = {
+"isa" = "XCBuildConfiguration";
+"buildSettings" = {
+"SDKROOT" = "macosx";
+"MACOSX_DEPLOYMENT_TARGET" = "13.0";
+"SWIFT_VERSION" = "5.0";
+"CLANG_ENABLE_MODULES" = "YES";
+"CODE_SIGN_IDENTITY" = "-";
+"CODE_SIGN_STYLE" = "Manual";
+"SWIFT_OPTIMIZATION_LEVEL" = "-O";
+};
+"name" = "Release";
+};
+"000000000000000000000018" = {
+"isa" = "XCConfigurationList";
+"buildConfigurations" = (
+"000000000000000000000016",
+"000000000000000000000017",
+);
+"defaultConfigurationIsVisible" = 0;
+"defaultConfigurationName" = "Release";
+};
+"000000000000000000000019" = {
+"isa" = "XCBuildConfiguration";
+"buildSettings" = {
+"PRODUCT_NAME" = "socks-proxy";
+"PRODUCT_MODULE_NAME" = "SOCKSProxy";
+"SWIFT_ACTIVE_COMPILATION_CONDITIONS" = "$(inherited)";
+"ENABLE_HARDENED_RUNTIME" = "NO";
+"SWIFT_OPTIMIZATION_LEVEL" = "-Onone";
+"ENABLE_TESTABILITY" = "YES";
+"DEBUG_INFORMATION_FORMAT" = "dwarf";
+};
+"name" = "Debug";
+};
+"00000000000000000000001A" = {
+"isa" = "XCBuildConfiguration";
+"buildSettings" = {
+"PRODUCT_NAME" = "socks-proxy";
+"PRODUCT_MODULE_NAME" = "SOCKSProxy";
+"SWIFT_ACTIVE_COMPILATION_CONDITIONS" = "$(inherited)";
+"ENABLE_HARDENED_RUNTIME" = "NO";
+"SWIFT_OPTIMIZATION_LEVEL" = "-O";
+};
+"name" = "Release";
+};
+"00000000000000000000001B" = {
+"isa" = "XCConfigurationList";
+"buildConfigurations" = (
+"000000000000000000000019",
+"00000000000000000000001A",
+);
+"defaultConfigurationIsVisible" = 0;
+"defaultConfigurationName" = "Release";
+};
+"00000000000000000000001C" = {
+"isa" = "XCBuildConfiguration";
+"buildSettings" = {
+"PRODUCT_NAME" = "$(TARGET_NAME)";
+"PRODUCT_BUNDLE_IDENTIFIER" = "edu.networks.SOCKSProxyTests";
+"GENERATE_INFOPLIST_FILE" = "YES";
+"LD_RUNPATH_SEARCH_PATHS" = (
+"$(inherited)",
+"@loader_path/../Frameworks",
+);
+"SWIFT_ACTIVE_COMPILATION_CONDITIONS" = "$(inherited)";
+"SWIFT_OPTIMIZATION_LEVEL" = "-Onone";
+"ENABLE_TESTABILITY" = "YES";
+"DEBUG_INFORMATION_FORMAT" = "dwarf";
+};
+"name" = "Debug";
+};
+"00000000000000000000001D" = {
+"isa" = "XCBuildConfiguration";
+"buildSettings" = {
+"PRODUCT_NAME" = "$(TARGET_NAME)";
+"PRODUCT_BUNDLE_IDENTIFIER" = "edu.networks.SOCKSProxyTests";
+"GENERATE_INFOPLIST_FILE" = "YES";
+"LD_RUNPATH_SEARCH_PATHS" = (
+"$(inherited)",
+"@loader_path/../Frameworks",
+);
+"SWIFT_ACTIVE_COMPILATION_CONDITIONS" = "$(inherited)";
+"SWIFT_OPTIMIZATION_LEVEL" = "-O";
+};
+"name" = "Release";
+};
+"00000000000000000000001E" = {
+"isa" = "XCConfigurationList";
+"buildConfigurations" = (
+"00000000000000000000001C",
+"00000000000000000000001D",
+);
+"defaultConfigurationIsVisible" = 0;
+"defaultConfigurationName" = "Release";
+};
+"00000000000000000000001F" = {
+"isa" = "PBXNativeTarget";
+"buildConfigurationList" = "00000000000000000000001B";
+"buildPhases" = (
+"000000000000000000000011",
+);
+"buildRules" = (
+);
+"dependencies" = (
+);
+"name" = "SOCKSProxy";
+"productName" = "socks-proxy";
+"productReference" = "000000000000000000000007";
+"productType" = "com.apple.product-type.tool";
+};
+"000000000000000000000020" = {
+"isa" = "PBXNativeTarget";
+"buildConfigurationList" = "00000000000000000000001E";
+"buildPhases" = (
+"000000000000000000000015",
+);
+"buildRules" = (
+);
+"dependencies" = (
+);
+"name" = "SOCKSProxyTests";
+"productName" = "SOCKSProxyTests";
+"productReference" = "000000000000000000000008";
+"productType" = "com.apple.product-type.bundle.unit-test";
+};
+"000000000000000000000021" = {
+"isa" = "PBXProject";
+"attributes" = {
+"LastUpgradeCheck" = "2620";
+};
+"buildConfigurationList" = "000000000000000000000018";
+"compatibilityVersion" = "Xcode 14.0";
+"developmentRegion" = "en";
+"knownRegions" = (
+"en",
+"Base",
+);
+"mainGroup" = "00000000000000000000000C";
+"productRefGroup" = "00000000000000000000000B";
+"projectDirPath" = "";
+"projectRoot" = "";
+"targets" = (
+"00000000000000000000001F",
+"000000000000000000000020",
+);
+};
+};
+"rootObject" = "000000000000000000000021";
+}
