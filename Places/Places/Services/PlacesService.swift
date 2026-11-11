@@ -155,7 +155,6 @@ struct PlacesService: PlacesServicing {
     let response: Response = try await wiki(["prop": "extracts|pageimages", "piprop": "thumbnail|name", "pithumbsize": "640", "pilicense": "free", "pageids": String(nearby.pageid), "exintro": "1", "explaintext": "1",])
     let description = response.query.pages.first?.extract?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
     let page = response.query.pages.first
-    let imageData = try await loadImage(page?.thumbnail?.source)
     var imagePageURL: URL?
     if let name = page?.pageimage {
       var components = URLComponents(string: "https://ru.wikipedia.org/w/index.php")!
@@ -164,9 +163,9 @@ struct PlacesService: PlacesServicing {
     }
     return Place(id: nearby.pageid, title: nearby.title, distance: nearby.dist,
                  description: description.isEmpty ? "Краткого описания нет." : description,
-                 imageData: imageData, imagePageURL: imagePageURL)
+                 imageURL: page?.thumbnail?.source, imagePageURL: imagePageURL)
   }
-  private func loadImage(_ url: URL?) async throws -> Data? {
+  func loadImage(_ url: URL?) async throws -> Data? {
     try Task.checkCancellation()
     guard let url, url.scheme == "https" else { return nil }
     let imageDeadline = min(deadline ?? .now.advanced(by: imageTimeout),

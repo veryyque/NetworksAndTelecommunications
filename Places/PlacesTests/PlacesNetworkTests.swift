@@ -8,6 +8,7 @@ final class MockProtocol: URLProtocol {
   static var mode = "normal"
   static var requestedIDs: [String] = []
   static let lock = NSLock()
+  static var imageRequests = 0
   static var imageStopped = false
   static var image = Data()
   static func png(width: Int, height: Int) -> Data {
@@ -52,6 +53,9 @@ final class MockProtocol: URLProtocol {
       }
       body = #"{"query":{"pages":[{"extract":"Description","thumbnail":{"source":"https://images.example/photo"}}]}}"#
     } else if url.host == "images.example" {
+      Self.lock.lock()
+      Self.imageRequests += 1
+      Self.lock.unlock()
       if Self.mode == "imageHang" { return }
       let headers = Self.mode == "oversize" ? ["Content-Type":"image/png", "Content-Length":"99999999"] : ["Content-Type":"image/png"]
       client?.urlProtocol(self, didReceive: HTTPURLResponse(url:url,statusCode:200,httpVersion:nil,headerFields:headers)!, cacheStoragePolicy:.notAllowed)
@@ -93,6 +97,7 @@ final class PlacesNetworkTests: XCTestCase {
       MockProtocol.mode = mode
       MockProtocol.requestedIDs = []
       MockProtocol.imageStopped = false
+      MockProtocol.imageRequests = 0
       MockProtocol.image = MockProtocol.png(width: mode == "pixels" ? 4097 : 2, height: 2)
       let start = ContinuousClock.now
       let result = try await service.loadDetails(for:locations[0])
@@ -103,11 +108,8 @@ final class PlacesNetworkTests: XCTestCase {
       } else {
         XCTAssertTrue(result.places.count == 2)
         XCTAssertTrue(result.places[0].description == "Description")
-        if ["imageHang", "oversize", "streamOversize", "pixels"].contains(mode) {
-          XCTAssertTrue(result.places[0].imageData == nil)
-        } else {
-          XCTAssertTrue(result.places[0].imageData == MockProtocol.image)
-        }
+        XCTAssertEqual(result.places[0].imageURL?.host, "images.example")
+        XCTAssertEqual(MockProtocol.imageRequests, 0, "Отчёт не должен скачивать фотографии")
         if mode == "success" || mode == "pixels" {
           XCTAssertTrue(result.places[1].description == "Description")
         } else {
@@ -118,15 +120,55 @@ final class PlacesNetworkTests: XCTestCase {
       if mode == "weatherError" || mode == "weatherHang" || mode == "bothError" {
         XCTAssertTrue(result.weather == nil && result.weatherError != nil)
       }
-      if mode == "imageHang" {
-        XCTAssertTrue(start.duration(to: .now) < .milliseconds(220))
-        XCTAssertTrue(MockProtocol.imageStopped)
+      if ["imageHang", "oversize", "streamOversize", "pixels", "success"].contains(mode) {
+        let data = try await service.loadImage(result.places[0].imageURL)
+        if mode == "success" {
+          XCTAssertEqual(data, MockProtocol.image)
+        } else {
+          XCTAssertNil(data)
+        }
+        if mode == "imageHang" {
+          let stopDeadline = ContinuousClock.now.advanced(by: .seconds(1))
+          while !MockProtocol.imageStopped && ContinuousClock.now < stopDeadline {
+            try await Task.sleep(for: .milliseconds(5))
+          }
+          XCTAssertTrue(MockProtocol.imageStopped)
+        }
       }
       if mode == "weatherHang" || mode == "descriptionHang" {
         XCTAssertTrue(start.duration(to: .now) >= .milliseconds(200))
       }
       print("PASS: \(mode)")
   }
+  func testImageCancellationStopsDownload() async throws {
+    let config = URLSessionConfiguration.ephemeral
+    config.protocolClasses = [MockProtocol.self]
+    let session = URLSession(configuration: config)
+    defer { session.invalidateAndCancel() }
+    let service = PlacesService(graphKey: "", weatherKey: "", session: session)
+    MockProtocol.mode = "imageHang"
+    MockProtocol.imageRequests = 0
+    MockProtocol.imageStopped = false
+    let task = Task { try await service.loadImage(URL(string: "https://images.example/photo")) }
+    let deadline = ContinuousClock.now.advanced(by: .seconds(1))
+    while MockProtocol.imageRequests == 0 && ContinuousClock.now < deadline {
+      try await Task.sleep(for: .milliseconds(5))
+    }
+    XCTAssertEqual(MockProtocol.imageRequests, 1)
+    task.cancel()
+    do {
+      _ = try await task.value
+      XCTFail("Отмена должна прервать загрузку фото")
+    } catch {
+      XCTAssertTrue(error is CancellationError)
+    }
+    let stopDeadline = ContinuousClock.now.advanced(by: .seconds(1))
+    while !MockProtocol.imageStopped && ContinuousClock.now < stopDeadline {
+      try await Task.sleep(for: .milliseconds(5))
+    }
+    XCTAssertTrue(MockProtocol.imageStopped)
+  }
+
   func testDamagedLocationsAreSkipped() async throws {
     let config = URLSessionConfiguration.ephemeral
     config.protocolClasses = [MockProtocol.self]

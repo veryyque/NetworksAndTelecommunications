@@ -32,15 +32,7 @@ struct WikipediaArticleView: View {
           VStack(alignment: .leading, spacing: 20) {
             Text(place.title).font(.largeTitle.bold())
               .foregroundStyle(Color.accentColor)
-            if let data = place.imageData, let image = NSImage(data: data) {
-              Image(nsImage: image).resizable().scaledToFit()
-                .frame(maxWidth: .infinity, maxHeight: 300)
-                .clipShape(RoundedRectangle(cornerRadius: 16))
-                .accessibilityLabel(place.title)
-              if let url = place.imagePageURL {
-                Link("Источник фото, автор и лицензия ↗", destination: url).font(.caption)
-              }
-            }
+            PlaceImageView(place: place, maxHeight: 300)
             VStack(alignment: .leading, spacing: 14) {
               ForEach(Array(model.blocks.enumerated()), id: \.offset) { _, block in
                 if block.headingLevel > 0 {
