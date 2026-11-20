@@ -3,6 +3,7 @@ import Foundation
 import Darwin
 
 final class Connection {
+    private static let handshakeTimeout = 30.0
     enum Stage { case greeting, request, dns, connecting, relay, closing }
     let id: Int
     let client: Int32
@@ -11,7 +12,7 @@ final class Connection {
     let upstream = ByteBuffer(), downstream = ByteBuffer() //клиент-> сервер, сервер -> клиент
     var clientEOF = false, remoteEOF = false
     var clientShutdown = false, remoteShutdown = false
-    var deadline = now() + 30
+    var deadline = now() + Connection.handshakeTimeout
     var port: UInt16 = 0
     var dnsID: UInt16?
     init(_ id: Int, _ client: Int32) { self.id = id; self.client = client }
@@ -35,6 +36,17 @@ final class Proxy {
     var acceptAfter = 0.0
     let dnsTimeout = 2.0
     let maxClients = 512
+    private let listenAddress = "127.0.0.1"
+    private let listenBacklog: Int32 = 128
+    private let connectTimeout = 15.0
+    private let closingTimeout = 2.0
+    private let maxDNSAttempts = 3
+    private let acceptRetryDelay = 0.2
+    private let maxAcceptsPerEvent = 64
+    private let maxDNSReadsPerEvent = 64
+    private let maxIOOperationsPerEvent = 4
+    private let dnsReceiveCapacity = 65535
+    private let millisecondsPerSecond = 1000.0
 
     init(port: UInt16, dnsIP: String, dnsPort: UInt16) throws {
         listener = try makeSocket(SOCK_STREAM)
@@ -42,8 +54,8 @@ final class Proxy {
         do {
             var yes: Int32 = 1
             _ = setsockopt(listener, SOL_SOCKET, SO_REUSEADDR, &yes, socklen_t(MemoryLayout<Int32>.size))
-            var local = try address("127.0.0.1", port)
-            guard withAddress(&local, { bind(listener, $0, $1) }) == 0, listen(listener, 128) == 0 else { throw systemError("listen/bind") }
+            var local = try address(listenAddress, port)
+            guard withAddress(&local, { bind(listener, $0, $1) }) == 0, listen(listener, listenBacklog) == 0 else { throw systemError("listen/bind") }
             var dns = try address(dnsIP, dnsPort)
             guard withAddress(&dns, { connect(resolver, $0, $1) }) == 0 else { throw systemError("DNS connect") }
         } catch { close(listener); close(resolver); throw error }
@@ -59,7 +71,7 @@ final class Proxy {
         if c.remote >= 0 { close(c.remote); c.remote = -1 }
         c.upstream.clear()
         c.downstream.append([5, rep, 0, 1, 0, 0, 0, 0, 0, 0]) //сокс5, код ошибки, резерв поле, IPv4, нулевой адрес, нулевой порт
-        c.stage = .closing; c.deadline = now() + 2
+        c.stage = .closing; c.deadline = now() + closingTimeout
     }
     func connected(_ c: Connection) {
         var a = sockaddr_in(), length = socklen_t(MemoryLayout<sockaddr_in>.size)
@@ -78,7 +90,7 @@ final class Proxy {
             var a = try address(ip.map(String.init).joined(separator: "."), c.port)
             let result = withAddress(&a) { connect(c.remote, $0, $1) }
             if result == 0 { connected(c) }
-            else if errno == EINPROGRESS { c.stage = .connecting; c.deadline = now() + 15 }
+            else if errno == EINPROGRESS { c.stage = .connecting; c.deadline = now() + connectTimeout }
             else { fail(c, code(errno)) }
         } catch { fail(c, 1) }
     }
@@ -101,7 +113,7 @@ final class Proxy {
             let noAuth = (2..<size).contains { b[$0] == 0 } //ищу 0х00 без аунт
             b.drop(size)
             c.downstream.append([5, noAuth ? 0 : 255])
-            guard noAuth else { c.stage = .closing; c.deadline = now() + 2; b.clear(); return }
+            guard noAuth else { c.stage = .closing; c.deadline = now() + closingTimeout; b.clear(); return }
             c.stage = .request
         }
         if c.stage == .request {
@@ -136,12 +148,12 @@ final class Proxy {
         }
     }
     func acceptClients() {
-        for _ in 0..<64 {
+        for _ in 0..<maxAcceptsPerEvent {
             guard clients.count < maxClients else { return }
             let fd = accept(listener, nil, nil)
             if fd < 0 {
                 if errno == EINTR { continue }
-                if !wouldBlock() { acceptAfter = now() + 0.2 }
+                if !wouldBlock() { acceptAfter = now() + acceptRetryDelay }
                 return
             }
             do { try configure(fd) } catch { close(fd); continue }
@@ -153,7 +165,7 @@ final class Proxy {
         let buffer = client ? c.upstream : c.downstream
         let fd = client ? c.client : c.remote
         //ставлю макс 4 попытки чтения чтобы обрабатывать остальных клиентов
-        for _ in 0..<4 {
+        for _ in 0..<maxIOOperationsPerEvent {
             guard buffer.free > 0 else { break }
             let n = buffer.receive(fd)
             if n > 0 {
@@ -171,7 +183,7 @@ final class Proxy {
     }
     func write(_ c: Connection, client: Bool) {
         let buffer = client ? c.downstream : c.upstream
-        for _ in 0..<4 {
+        for _ in 0..<maxIOOperationsPerEvent {
             guard buffer.count > 0 else { break }
             let n = buffer.sendTo(client ? c.client : c.remote)
             if n < 0 {
@@ -205,11 +217,11 @@ final class Proxy {
         else if let c = clients[job.clientID] { fail(c, 4) }
     }
     func readDNS() {
-        var data = [UInt8](repeating: 0, count: 65535)
-        for _ in 0..<64 {
+        var data = [UInt8](repeating: 0, count: dnsReceiveCapacity)
+        for _ in 0..<maxDNSReadsPerEvent {
             let n = data.withUnsafeMutableBytes { recv(resolver, $0.baseAddress, $0.count, 0) }
             if n < 0 { if errno == EINTR { continue }; return }
-            guard n >= 12 else { continue }
+            guard n >= DNS.headerSize else { continue }
             let id = UInt16(DNS.readUInt16(data, at: 0))
             guard let job = jobs[id], let c = clients[job.clientID],
                   let reply = DNS.parseResponse(Array(data.prefix(n)), expected: job.name) else { continue }
@@ -225,7 +237,7 @@ final class Proxy {
         for id in Array(jobs.keys) {
             guard var job = jobs[id], job.deadline <= time else { continue }
             guard let c = clients[job.clientID] else { jobs.removeValue(forKey: id); continue }
-            if job.attempts == 3 { fail(c, 4); continue }
+            if job.attempts == maxDNSAttempts { fail(c, 4); continue }
             job.attempts += 1; job.deadline = time + dnsTimeout; job.queued = true
             jobs[id] = job; sendDNS(id)
         }
@@ -261,7 +273,7 @@ final class Proxy {
             var deadlines = jobs.values.map { $0.deadline }
             deadlines += clients.values.filter { $0.stage != .relay && $0.stage != .dns }.map { $0.deadline }
             if acceptAfter > now() { deadlines.append(acceptAfter) }
-            let timeout: Int32 = deadlines.min().map { Int32(min(2_147_483_647, max(1, (($0 - now()) * 1000).rounded(.up)))) } ?? -1
+            let timeout: Int32 = deadlines.min().map { Int32(min(Double(Int32.max), max(1, (($0 - now()) * millisecondsPerSecond).rounded(.up)))) } ?? -1
             let result = polls.withUnsafeMutableBufferPointer { poll($0.baseAddress, nfds_t($0.count), timeout) }
             if result < 0 { if errno == EINTR { continue }; throw systemError("poll") }
             for i in polls.indices where polls[i].revents != 0 {

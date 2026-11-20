@@ -1,15 +1,20 @@
 import Foundation
 
 struct DNS {
-    private static let headerSize = 12
+    static let headerSize = 12
     private static let typeA = 1
     private static let typeCNAME = 5
     private static let internetClass = 1
+    private static let recursionDesired: UInt16 = 0x0100
+    private static let maxLabelLength = 63
+    private static let maxNameLength = 255
+    private static let maxNameReadSteps = 128
+    private static let byteBase = 256
 
     static func makeQuery(id: UInt16, name: String) throws -> [UInt8] {
         var packet: [UInt8] = []
         appendUInt16(id, to: &packet)
-        appendUInt16(0x0100, to: &packet) //флаг RD - Recursion Desired, найти ответ, если его нет в кэше
+        appendUInt16(recursionDesired, to: &packet) //флаг RD - Recursion Desired, найти ответ, если его нет в кэше
         appendUInt16(1, to: &packet)      //1 вопрос
         appendUInt16(0, to: &packet)      //0 ответов
         appendUInt16(0, to: &packet)      //нет авторитетных серверов
@@ -30,7 +35,7 @@ struct DNS {
             guard !bytes.isEmpty else {
                 throw ProxyError("Пустая DNS-метка")
             }
-            guard bytes.count <= 63 else {
+            guard bytes.count <= maxLabelLength else {
                 throw ProxyError("Слишком длинная DNS-метка")
             }
             guard bytes.allSatisfy({ $0 > 32 && $0 < 127 }) else {
@@ -40,7 +45,7 @@ struct DNS {
             packet.append(UInt8(bytes.count))
             packet.append(contentsOf: bytes)
         }
-        guard nameLength <= 255 else {
+        guard nameLength <= maxNameLength else {
             throw ProxyError("Слишком длинное имя DNS")
         }
 
@@ -51,14 +56,14 @@ struct DNS {
     }
 
     private static func appendUInt16(_ value: UInt16, to packet: inout [UInt8]) {
-        packet.append(UInt8(value / 256))
-        packet.append(UInt8(value % 256))
+        packet.append(UInt8(value / UInt16(byteBase)))
+        packet.append(UInt8(value % UInt16(byteBase)))
     }
 
     static func readUInt16(_ packet: [UInt8], at position: Int) -> Int {
         let highByte = Int(packet[position])
         let lowByte = Int(packet[position + 1])
-        return highByte * 256 + lowByte
+        return highByte * byteBase + lowByte
     }
 
     static func readName(_ packet: [UInt8], cursor: inout Int) throws -> String {
@@ -75,7 +80,7 @@ struct DNS {
             guard visitedPositions.insert(position).inserted else {
                 throw ProxyError("Циклическая ссылка в DNS-имени")
             }
-            guard visitedPositions.count <= 128 else {
+            guard visitedPositions.count <= maxNameReadSteps else {
                 throw ProxyError("Слишком много переходов при чтении DNS-имени")
             }
 
@@ -95,12 +100,12 @@ struct DNS {
                 }
                 let highBits = firstByte & 0x3F
                 let lowByte = Int(packet[position + 1])
-                position = highBits * 256 + lowByte
+                position = highBits * byteBase + lowByte
                 continue
             }
 
             let partLength = firstByte
-            guard partLength <= 63 else {
+            guard partLength <= maxLabelLength else {
                 throw ProxyError("Некорректная длина DNS-метки")
             }
             let partStart = position + 1
@@ -109,7 +114,7 @@ struct DNS {
                 throw ProxyError("DNS-метка выходит за границы пакета")
             }
             nameLength += partLength + 1
-            guard nameLength <= 254 else {
+            guard nameLength < maxNameLength else {
                 throw ProxyError("Слишком длинное имя DNS")
             }
             guard let part = String(bytes: packet[partStart..<partEnd], encoding: .ascii) else {

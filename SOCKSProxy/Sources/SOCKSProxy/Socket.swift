@@ -9,10 +9,12 @@ struct ProxyError: Error, CustomStringConvertible {
 func systemError(_ operation: String) -> ProxyError {
     ProxyError("\(operation): \(String(cString: strerror(errno)))")
 }
+private let nanosecondsPerSecond = 1000000000.0
+
 func now() -> Double {
     var t = timespec()
     clock_gettime(CLOCK_MONOTONIC, &t)
-    return Double(t.tv_sec) + Double(t.tv_nsec) / 1000000000
+    return Double(t.tv_sec) + Double(t.tv_nsec) / nanosecondsPerSecond
 }
 func wouldBlock() -> Bool { errno == EAGAIN || errno == EWOULDBLOCK }
 func makeSocket(_ type: Int32) throws -> Int32 {
@@ -53,6 +55,7 @@ func withAddress<T>(_ a: inout sockaddr_in, _ body: (UnsafePointer<sockaddr>, so
 
 //на старте программы, если DNS не указан
 func systemResolver() throws -> String {
+    let dnsPort: UInt16 = 53
     if let store = SCDynamicStoreCreate(nil, "SOCKSProxy" as CFString, nil, nil) { //получение динамических сетевых настроек
         var keys = ["State:/Network/Global/DNS"]
         if let services = SCDynamicStoreCopyKeyList(store, "State:/Network/Service/.*/DNS" as CFString) as? [String] {
@@ -61,14 +64,14 @@ func systemResolver() throws -> String {
         for key in keys {
             if let settings = SCDynamicStoreCopyValue(store, key as CFString) as? [String: Any],
                let servers = settings["ServerAddresses"] as? [String] {
-                for ip in servers where (try? address(ip, 53)) != nil { return ip }
+                for ip in servers where (try? address(ip, dnsPort)) != nil { return ip }
             }
         }
     }
     if let config = try? String(contentsOfFile: "/etc/resolv.conf", encoding: .utf8) {
         for line in config.split(separator: "\n") {
             let words = line.split(whereSeparator: { $0.isWhitespace })
-            if words.count >= 2, words[0] == "nameserver", (try? address(String(words[1]), 53)) != nil {
+            if words.count >= 2, words[0] == "nameserver", (try? address(String(words[1]), dnsPort)) != nil {
                 return String(words[1])
             }
         }
