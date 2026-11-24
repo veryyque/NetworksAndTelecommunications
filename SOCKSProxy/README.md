@@ -42,3 +42,18 @@ open -na "Google Chrome" --args \
   --proxy-server="socks5://127.0.0.1:1080"
 ```
 
+## Тестовый стенд
+
+```bash
+cd ~/Desktop/Networks/SOCKSProxy
+swiftc -O Sources/SOCKSProxy/*.swift -o socks-proxy
+./socks-proxy 1080 151.248.113.22:45379
+```
+
+В другом окне терминала
+
+```bash
+open -na "Google Chrome" --args \
+  --user-data-dir="$HOME/Library/Application Support/Chrome-SOCKS-Stand" \
+  --proxy-server="socks5://127.0.0.1:1080"
+```
