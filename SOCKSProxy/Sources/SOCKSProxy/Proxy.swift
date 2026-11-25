@@ -23,8 +23,10 @@ struct DNSJob {
     let name: String
     let packet: [UInt8]
     var attempts = 0
-    var deadline = now()
-    var queued = false
+    var deadline = Double.infinity //ожидание ответа только после сенд
+    var queued = true
+    var sendRetryAt = now()
+    var queueDeadline = now() + 6
 }
 
 final class Proxy {
@@ -45,8 +47,12 @@ final class Proxy {
     private let maxAcceptsPerEvent = 64
     private let maxDNSReadsPerEvent = 64
     private let maxIOOperationsPerEvent = 4
-    private let dnsReceiveCapacity = 65535
     private let millisecondsPerSecond = 1000.0
+    private let dnsSendRetryDelay = 0.2
+    private let dnsQueueTimeout = 6.0
+    private var jobIDs: [UInt16] = []
+    private var clientIDs: [Int] = []
+    private let dnsReceiveCapacity = 65535
 
     init(port: UInt16, dnsIP: String, dnsPort: UInt16) throws {
         listener = try makeSocket(SOCK_STREAM)
@@ -107,7 +113,7 @@ final class Proxy {
         let b = c.upstream
         if c.stage == .greeting {
             guard b.count >= 2 else { return }
-            guard b[0] == 5, b[1] > 0 else { remove(c); return } //версия сокс и количество методов
+            guard b[0] == 5 else { remove(c); return } //версия сокс и количество методов
             let size = Int(b[1]) + 2
             guard b.count >= size else { return }
             let noAuth = (2..<size).contains { b[$0] == 0 } //ищу 0х00 без аунт
@@ -181,8 +187,9 @@ final class Proxy {
             }
         }
     }
-    func write(_ c: Connection, client: Bool) {
+    func write(_ c: Connection, client: Bool, closeIfStalled: Bool = false) {
         let buffer = client ? c.downstream : c.upstream
+        let before = buffer.count
         for _ in 0..<maxIOOperationsPerEvent {
             guard buffer.count > 0 else { break }
             let n = buffer.sendTo(client ? c.client : c.remote)
@@ -193,6 +200,7 @@ final class Proxy {
             }
             if n == 0 { break }
         }
+        if closeIfStalled && before > 0 && buffer.count == before { remove(c) }
     }
     func finish(_ c: Connection) {
         guard clients[c.id] != nil else { return }
@@ -202,19 +210,48 @@ final class Proxy {
         }
         guard c.stage == .relay else { return }
         if c.clientEOF && c.upstream.count == 0 && !c.remoteShutdown {
-            _ = shutdown(c.remote, SHUT_WR); c.remoteShutdown = true
+            guard shutdownWrite(c.remote) else { remove(c); return }
+            c.remoteShutdown = true
         }
         if c.remoteEOF && c.downstream.count == 0 && !c.clientShutdown {
-            _ = shutdown(c.client, SHUT_WR); c.clientShutdown = true
+            guard shutdownWrite(c.client) else { remove(c); return }
+            c.clientShutdown = true
         }
         if c.clientEOF && c.remoteEOF && c.upstream.count == 0 && c.downstream.count == 0 { remove(c) }
     }
+    private func shutdownWrite(_ fd: Int32) -> Bool {
+        for _ in 0..<maxIOOperationsPerEvent {
+            if shutdown(fd, SHUT_WR) == 0 { return true }
+            if errno != EINTR { return false }
+        }
+        return false
+    }
+
     func sendDNS(_ id: UInt16) {
-        guard var job = jobs[id], job.queued else { return }
+        guard var job = jobs[id], job.queued, job.sendRetryAt <= now() else { return }
+        guard now() < job.queueDeadline else {
+            if let c = clients[job.clientID] { fail(c, 4) }
+            return
+        }
         let n = job.packet.withUnsafeBytes { send(resolver, $0.baseAddress, $0.count, 0) }
-        if n == job.packet.count { job.queued = false; jobs[id] = job }
-        else if n < 0 && (wouldBlock() || errno == EINTR) { return }
-        else if let c = clients[job.clientID] { fail(c, 4) }
+        if n == job.packet.count {
+            job.attempts += 1 // Считаем только действительно отправленные датаграммы.
+            job.deadline = now() + dnsTimeout
+            job.queued = false
+            jobs[id] = job
+        } else if n < 0 {
+            let error = errno
+            if error == EAGAIN || error == EWOULDBLOCK || error == EINTR { return }
+            switch error {
+            case EACCES, EPERM, EBADF, ENOTSOCK, EINVAL, EMSGSIZE, EAFNOSUPPORT:
+                if let c = clients[job.clientID] { fail(c, 4) }
+            default: //временная ошибка чтобы повторить еще раз
+                job.sendRetryAt = now() + dnsSendRetryDelay
+                jobs[id] = job
+            }
+        } else if let c = clients[job.clientID] {
+            fail(c, 4) //датаграмма отправляется целиком
+        }
     }
     func readDNS() {
         var data = [UInt8](repeating: 0, count: dnsReceiveCapacity)
@@ -234,30 +271,64 @@ final class Proxy {
     }
     func timers() {
         let time = now()
-        for id in Array(jobs.keys) {
-            guard var job = jobs[id], job.deadline <= time else { continue }
+        jobIDs.removeAll(keepingCapacity: true)
+        jobIDs.append(contentsOf: jobs.keys)
+        for id in jobIDs {
+            guard var job = jobs[id] else { continue }
             guard let c = clients[job.clientID] else { jobs.removeValue(forKey: id); continue }
+            if job.queued {
+                if job.queueDeadline <= time { fail(c, 4) }
+                else if job.sendRetryAt <= time { sendDNS(id) }
+                continue
+            }
+            guard job.deadline <= time else { continue }
             if job.attempts == maxDNSAttempts { fail(c, 4); continue }
-            job.attempts += 1; job.deadline = time + dnsTimeout; job.queued = true
-            jobs[id] = job; sendDNS(id)
+            job.queued = true
+            job.sendRetryAt = time
+            job.queueDeadline = time + dnsQueueTimeout
+            jobs[id] = job
+            sendDNS(id)
         }
-        for c in Array(clients.values) {
+        clientIDs.removeAll(keepingCapacity: true)
+        clientIDs.append(contentsOf: clients.keys)
+        for id in clientIDs {
+            guard let c = clients[id] else { continue }
             if c.stage != .relay && c.stage != .dns && c.deadline <= time {
                 if c.stage == .connecting { fail(c, 4) } else { remove(c) }
             }
         }
     }
+
     func run() throws {
+        var polls: [pollfd] = []
+        var owners: [(Int, Bool)] = []
         while true {
             timers()
-            var polls: [pollfd] = [], owners: [(Int, Bool)] = []
+            polls.removeAll(keepingCapacity: true)
+            owners.removeAll(keepingCapacity: true)
             func add(_ fd: Int32, _ events: Int16, _ id: Int = -1, _ client: Bool = false) {
                 guard events != 0 else { return }
                 polls.append(pollfd(fd: fd, events: events, revents: 0)); owners.append((id, client))
             }
-            if clients.count < maxClients && now() >= acceptAfter { add(listener, Int16(POLLIN)) }
-            add(resolver, Int16(POLLIN) | (jobs.values.contains(where: { $0.queued }) ? Int16(POLLOUT) : 0))
+            let time = now()
+            var nearestDeadline = Double.infinity
+            var dnsEvents = Int16(POLLIN)
+            for job in jobs.values {
+                if job.queued {
+                    nearestDeadline = min(nearestDeadline, job.queueDeadline)
+                    if job.sendRetryAt <= time { dnsEvents |= Int16(POLLOUT) }
+                    else { nearestDeadline = min(nearestDeadline, job.sendRetryAt) }
+                } else {
+                    nearestDeadline = min(nearestDeadline, job.deadline)
+                }
+            }
+            if clients.count < maxClients && time >= acceptAfter { add(listener, Int16(POLLIN)) }
+            if acceptAfter > time { nearestDeadline = min(nearestDeadline, acceptAfter) }
+            add(resolver, dnsEvents)
             for c in clients.values {
+                if c.stage != .relay && c.stage != .dns {
+                    nearestDeadline = min(nearestDeadline, c.deadline)
+                }
                 var events: Int16 = 0
                 if c.stage != .closing && !c.clientEOF && c.upstream.free > 0 { events |= Int16(POLLIN) }
                 if c.downstream.count > 0 { events |= Int16(POLLOUT) }
@@ -270,10 +341,9 @@ final class Proxy {
                     add(c.remote, events, c.id)
                 }
             }
-            var deadlines = jobs.values.map { $0.deadline }
-            deadlines += clients.values.filter { $0.stage != .relay && $0.stage != .dns }.map { $0.deadline }
-            if acceptAfter > now() { deadlines.append(acceptAfter) }
-            let timeout: Int32 = deadlines.min().map { Int32(min(Double(Int32.max), max(1, (($0 - now()) * millisecondsPerSecond).rounded(.up)))) } ?? -1
+            let timeout: Int32 = nearestDeadline.isFinite
+                ? Int32(min(Double(Int32.max), max(1, ((nearestDeadline - now()) * millisecondsPerSecond).rounded(.up))))
+                : -1
             let result = polls.withUnsafeMutableBufferPointer { poll($0.baseAddress, nfds_t($0.count), timeout) }
             if result < 0 { if errno == EINTR { continue }; throw systemError("poll") }
             for i in polls.indices where polls[i].revents != 0 {
@@ -282,7 +352,9 @@ final class Proxy {
                 if p.fd == resolver {
                     if p.revents & Int16(POLLIN | POLLERR) != 0 { readDNS() }
                     if p.revents & Int16(POLLOUT) != 0 {
-                        for id in Array(jobs.keys) { sendDNS(id) }
+                        jobIDs.removeAll(keepingCapacity: true)
+                        jobIDs.append(contentsOf: jobs.keys)
+                        for id in jobIDs { sendDNS(id) }
                     }
                     continue
                 }
@@ -294,11 +366,13 @@ final class Proxy {
                     else if error != 0 { fail(c, code(error)) } else { connected(c) }
                 } else {
                     if p.revents & Int16(POLLNVAL | POLLERR) != 0 { remove(c); continue }
-                    if p.revents & Int16(POLLIN | POLLHUP) != 0 && p.events & Int16(POLLIN) != 0 { read(c, client: client) }
+                    let hungUp = p.revents & Int16(POLLHUP) != 0
+                    let canRead = p.events & Int16(POLLIN) != 0
+                    if (p.revents & Int16(POLLIN) != 0 || hungUp) && canRead { read(c, client: client) }
                     guard clients[id] != nil else { continue }
-                    if p.revents & Int16(POLLOUT) != 0 { write(c, client: client) }
-                    if p.revents & Int16(POLLHUP) != 0 && p.events & Int16(POLLIN) == 0 && p.events & Int16(POLLOUT) != 0 {
-                        write(c, client: client)
+                    let hupWrite = hungUp && !canRead && p.events & Int16(POLLOUT) != 0
+                    if p.revents & Int16(POLLOUT) != 0 || hupWrite {
+                        write(c, client: client, closeIfStalled: hungUp && !canRead)
                     }
                 }
                 finish(c)

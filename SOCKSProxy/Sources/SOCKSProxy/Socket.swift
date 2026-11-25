@@ -108,8 +108,10 @@ final class ByteBuffer {
 
     private func compact() {
         let remaining = count
-        for index in 0..<remaining {
-            storage[index] = storage[readIndex + index]
+        let start = readIndex
+        storage.withUnsafeMutableBytes { memory in
+            let base = memory.baseAddress!
+            _ = memmove(base, base.advanced(by: start), remaining) //области могут пересекаться, поэтому заменила на на memmove
         }
         readIndex = 0
         writeIndex = remaining
